@@ -1,0 +1,15 @@
+[project]
+name = "homologicalthreading"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "cython>=3.0.11",
+    "homcloud>=4.6.0",
+    "numpy>=2.2.2",
+    "pyqt6>=6.8.1",
+    "pyvista[all]>=0.44.1",
+    "pyvistaqt>=0.11.1",
+    "wheel>=0.45.1",
+]
