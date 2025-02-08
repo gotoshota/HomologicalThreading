@@ -1,187 +1,229 @@
-class lammpsData:
+class LammpsData:
     """
-    A class to read and store LAMMPS data from a file.
+    LAMMPSのデータファイルを読み込み，データを格納するクラス
 
     Attributes:
-        filename (str): The name of the file containing LAMMPS data.
-        atoms (list): A list to store atom data.
-        bonds (list): A list to store bond data.
-        angles (list): A list to store angle data.
-        dihedrals (list): A list to store dihedral data.
-        impropers (list): A list to store improper data.
-        masses (list): A list to store mass data.
-        box (dict): A dictionary to store box dimensions.
+        filename (str): LAMMPSデータファイルのパス
+        box (Box): ボックス情報を保持するオブジェクト
+        atoms (Atom): 原子情報を保持するオブジェクト
+        bonds (Bond): ボンド情報を保持するオブジェクト
+        angles (Angle): 角度情報を保持するオブジェクト
+        現在，2面角 (Dihedrals) や不整合角 (Impropers) は未対応． また，将来の拡張も考慮していない．
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename=None):
         """
-        Initializes the lammpsData object by reading data from the specified file.
+        LammpsDataオブジェクトを初期化し，ファイルが指定されていればデータを読み込む
 
         Args:
-            filename (str): The name of the file containing LAMMPS data.
+            filename (str): LAMMPSデータファイルのパス
         """
         self.filename = filename
-        self.atoms = []
-        self.bonds = []
-        self.angles = []
-        self.dihedrals = []
-        self.impropers = []
-        self.masses = []
-        self.atom_types = 0
-        self.bond_types = 0
-        self.angle_types = 0
-        self.dihedral_types = 0
-        self.improper_types = 0
-        self.box = {}
-        self.readData()
+        self.atoms = self.Atom()  # 一貫して atoms としています
+        self.bonds = self.Bond()
+        self.angles = self.Angle()
+        self.box = self.Box()
 
-    def readData(self):
+        if filename is not None:
+            self.read(filename)
+
+    class Box:
         """
-        Reads data from the file and stores it in the appropriate attributes.
+        ボックス情報を保持するクラス
+
+        Attributes:
+            x (tuple): x軸の範囲 (xlo, xhi)
+            y (tuple): y軸の範囲 (ylo, yhi)
+            z (tuple): z軸の範囲 (zlo, zhi)
+            lx (float): x軸の長さ
+            ly (float): y軸の長さ
+            lz (float): z軸の長さ
         """
-        with open(self.filename, "r") as f:
-            lines = [line.strip() for line in f.readlines()]  # 余分な空白や改行を除去
-            section_map = {
-                "Atoms": self.atoms,
-                "Bonds": self.bonds,
-                "Angles": self.angles,
-                "Dihedrals": self.dihedrals,
-                "Impropers": self.impropers,
-                "Masses": self.masses,
-            }
-            type_map = {
-                "atom types": "atom_types",
-                "bond types": "bond_types",
-                "angle types": "angle_types",
-                "dihedral types": "dihedral_types",
-                "improper types": "improper_types",
-            }
 
-            for i, line in enumerate(lines):
-                for type_name, attr_name in type_map.items():
-                    if type_name in line:
-                        setattr(
-                            self, attr_name, int(line.split()[0])
-                        )  # クラス変数を直接更新
+        def __init__(self):
+            self.x = (0.0, 0.0)
+            self.y = (0.0, 0.0)
+            self.z = (0.0, 0.0)
+            self.lx = 0.0
+            self.ly = 0.0
+            self.lz = 0.0
 
-                for section, storage in section_map.items():
-                    if line.startswith(section):
-                        j = i + 2  # セクションヘッダーの次の行からデータを取得
-                        while j < len(lines):
-                            current_line = lines[j].strip()
-                            if not current_line or current_line.startswith(
-                                "#"
-                            ):  # 空行やコメントをスキップ
-                                j += 1
-                                continue
-                            if any(
-                                current_line.startswith(next_section)
-                                for next_section in section_map.keys()
-                            ):
-                                break
-                            storage.append(current_line.split())  # 適切なデータのみ追加
-                            j += 1
-
-                if "xlo" in line:
-                    self.box["x"] = (float(line.split()[0]), float(line.split()[1]))
-                if "ylo" in line:
-                    self.box["y"] = (float(line.split()[0]), float(line.split()[1]))
-                if "zlo" in line:
-                    self.box["z"] = (float(line.split()[0]), float(line.split()[1]))
-
-    def writeData(self, filename):
+    class Atom:
         """
-        Writes data to a file.
+        原子情報を保持するクラス
+
+        Attributes:
+            id (list of int): 原子IDのリスト
+            mol_id (list of int): 分子IDのリスト
+            type (list of int): 原子タイプのリスト
+            coords (list of tuple): 座標 (x, y, z) のリスト
+            num_atoms (int): 原子の総数
+        """
+
+        def __init__(self):
+            self.id = []
+            self.mol_id = []
+            self.type = []
+            self.coords = []
+            self.num_atoms = 0
+            self.num_mols = 0
+            self.num_types = 0
+
+    class Bond:
+        """
+        ボンド情報を保持するクラス
+
+        Attributes:
+            id (list of int): ボンドIDのリスト
+            type (list of int): ボンドタイプのリスト
+            atoms (list of tuple): ボンドを構成する原子のリスト
+            num_bonds (int): ボンドの総数
+            num_types (int): ボンドタイプの数
+        """
+
+        def __init__(self):
+            self.id = []
+            self.type = []
+            self.atoms = []
+            self.num_bonds = 0
+            self.num_types = 0
+
+    class Angle:
+        """
+        角度情報を保持するクラス
+
+        Attributes:
+            id (list of int): 角度IDのリスト
+            type (list of int): 角度タイプのリスト
+            atoms (list of tuple): 角度を構成する原子のリスト
+            num_angles (int): 角度の総数
+            num_types (int): 角度タイプの数
+        """
+
+        def __init__(self):
+            self.id = []
+            self.type = []
+            self.atoms = []
+            self.num_angles = 0
+            self.num_types = 0
+
+    def read(self, filename):
+        """
+        LAMMPSデータファイルからデータを読み込み，各属性に格納する
 
         Args:
-            filename (str): The name of the file to write data to.
+            filename (str): 読み込むファイル名
         """
-        with open(filename, "w") as f:
-            f.write("LAMMPS data by LammpsDumpReader\n\n")
-            f.write(f"{len(self.atoms)} atoms\n")
-            f.write(f"{len(self.bonds)} bonds\n")
-            f.write(f"{len(self.angles)} angles\n")
-            f.write(f"{len(self.dihedrals)} dihedrals\n")
-            f.write(f"{len(self.impropers)} impropers\n\n")
-            f.write(f"{self.atom_types} atom types\n")
-            f.write(f"{self.bond_types} bond types\n")
-            f.write(f"{self.angle_types} angle types\n")
-            f.write(f"{self.dihedral_types} dihedral types\n")
-            f.write(f"{self.improper_types} improper types\n\n")
-            f.write(f"{self.box['x'][0]} {self.box['x'][1]} xlo xhi\n")
-            f.write(f"{self.box['y'][0]} {self.box['y'][1]} ylo yhi\n")
-            f.write(f"{self.box['z'][0]} {self.box['z'][1]} zlo zhi\n\n")
-            f.write("Masses\n\n")
-            for mass in self.masses:
-                f.write(" ".join(mass) + "\n")
-            f.write("\nAtoms\n\n")
-            for atom in self.atoms:
-                f.write(" ".join(atom) + "\n")
-            f.write("\nBonds\n\n")
-            for bond in self.bonds:
-                f.write(" ".join(bond) + "\n")
-            f.write("\nAngles\n\n")
-            for angle in self.angles:
-                f.write(" ".join(angle) + "\n")
-            f.write("\nDihedrals\n\n")
-            for dihedral in self.dihedrals:
-                f.write(" ".join(dihedral) + "\n")
-            f.write("\nImpropers\n\n")
-            for improper in self.impropers:
-                f.write(" ".join(improper) + "\n")
+        if filename is not None:
+            self.filename = filename
 
-    def polymerWrap(self):
-        """
-        Wraps coordinates of polymer chains in the box
-        to conserve bond configuration.
-        """
-        for i, atom in enumerate(self.atoms):
-            if i == 0:
-                molecule_id = int(atom[0])
-            elif atom[0] == molecule_id:
-                atom[2] = str(float(atom[2]) % (self.box["x"][1] - self.box["x"][0]))
-                atom[3] = str(float(atom[3]) % (self.box["y"][1] - self.box["y"][0]))
-                atom[4] = str(float(atom[4]) % (self.box["z"][1] - self.box["z"][0]))
-            else:
-                molecule_id += 1
+        with open(self.filename, "r") as f:
+            lines = f.readlines()
+
+        # --- 1. ヘッダー部からボックス情報や型数を取得 ---
+        for line in lines:
+            line_strip = line.strip()
+            if "xlo" in line_strip and "xhi" in line_strip:
+                parts = line_strip.split()
+                self.box.x = (float(parts[0]), float(parts[1]))
+                self.box.lx = float(parts[1]) - float(parts[0])
+            elif "ylo" in line_strip and "yhi" in line_strip:
+                parts = line_strip.split()
+                self.box.y = (float(parts[0]), float(parts[1]))
+                self.box.ly = float(parts[1]) - float(parts[0])
+            elif "zlo" in line_strip and "zhi" in line_strip:
+                parts = line_strip.split()
+                self.box.z = (float(parts[0]), float(parts[1]))
+                self.box.lz = float(parts[1]) - float(parts[0])
+            elif "atoms" in line_strip:
+                parts = line_strip.split()
+                self.atoms.num_atoms = int(parts[0])
+            elif "bonds" in line_strip:
+                parts = line_strip.split()
+                self.bonds.num_bonds = int(parts[0])
+            elif "angles" in line_strip:
+                parts = line_strip.split()
+                self.angles.num_angles = int(parts[0])
+            elif "atom types" in line_strip:
+                parts = line_strip.split()
+                self.atoms.num_types = int(parts[0])
+            elif "bond types" in line_strip:
+                parts = line_strip.split()
+                self.bonds.num_types = int(parts[0])
+            elif "angle types" in line_strip:
+                parts = line_strip.split()
+                self.angles.num_types = int(parts[0])
+
+        # --- 2. セクション毎にデータをパース ---
+        section_names = ["Masses", "Atoms", "Bonds", "Angles", "Dihedrals", "Impropers"]
+        current_section = None
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+
+            # セクションヘッダーの検出
+            if any(line.startswith(sec) for sec in section_names):
+                # セクション名を現在のセクションとして記憶
+                current_section = line.split()[0]
+                # セクション名の行とその次の空行（またはコメント行）をスキップ
+                i += 2
+                continue
+
+            # セクション外なら次の行へ
+            if current_section is None:
+                i += 1
+                continue
+
+            # 空行やコメント行はスキップ
+            if not line or line.startswith("#"):
+                i += 1
+                continue
+
+            # 新たなセクションが始まった場合は current_section をリセット
+            if any(line.startswith(sec) for sec in section_names):
+                current_section = None
+                continue
+
+            # データ行のパース
+            parts = line.split()
+            if current_section == "Atoms":
+                # 例: "1 1 1 0.0 0.0 0.0 ..." (原子ID, 分子ID, タイプ, x, y, z, ...)
+                if len(parts) >= 6:
+                    self.atoms.id.append(int(parts[0]))
+                    self.atoms.mol_id.append(int(parts[1]))
+                    self.atoms.type.append(int(parts[2]))
+                    self.atoms.coords.append(
+                        (float(parts[3]), float(parts[4]), float(parts[5]))
+                    )
+            # 他のセクション (Masses, Bonds, など) のパース処理も同様に追加可能
+
+            i += 1
+        # 被ってない，mol_id の数を数える
+        self.atoms.num_mols = len(set(self.atoms.mol_id))
 
     def __str__(self):
-        """
-        Returns a string representation of the lammpsData object.
-
-        Returns:
-            str: A string representation of the lammpsData object.
-        """
-        return f"lammpsData({self.filename})"
+        return f"LammpsData({self.filename})"
 
     def __repr__(self):
-        """
-        Returns a string representation of the lammpsData object.
-
-        Returns:
-            str: A string representation of the lammpsData object.
-        """
-        return f"lammpsData({self.filename})"
+        return self.__str__()
 
 
+# 動作確認用（必要に応じてパスを適宜変更してください）
 if __name__ == "__main__":
-    data = lammpsData("../../../murashimaPolym/N2000/msd.N2000.1.data")
-    print(f"{len(data.atoms)=}")
-    print(f"{len(data.bonds)=}")
-    print(f"{data.bonds[0]=}")
-    print(f"{len(data.angles)=}")
-    print(f"{len(data.dihedrals)=}")
-    print(f"{len(data.impropers)=}")
-    print(f"{len(data.masses)=}")
-    print(f"{data.atom_types=}")
-    print(f"{data.bond_types=}")
-    print(f"{data.angle_types=}")
-    print(f"{data.dihedral_types=}")
-    print(f"{data.improper_types=}")
-    print(f"{data.box=}")
-    print(f"{data.box['x']=}")
-    print(f"{data.box['x'][0]=}")
-    a = data.atoms[0][2]
-    data.polymerWrap()
-    print(f"{data.atoms[0][2] - a}")
-    data.writeData("test.data")
+    data = LammpsData("../../../murashimaPolym/N2000/msd.N2000.1.data")
+    # Test box
+    print(f"{data.box.x=}")
+    print(f"{data.box.y=}")
+    print(f"{data.box.z=}")
+    print(f"{data.box.lx=}")
+    print(f"{data.box.ly=}")
+    print(f"{data.box.lz=}")
+
+    # Test atoms
+    print(f"{data.atoms.num_atoms=}")
+    print(f"{data.atoms.num_mols=}")
+    print(f"{data.atoms.num_types=}")
+
+    # Test bonds
+    print(f"{data.bonds.num_bonds=}")
+    print(f"{data.bonds.num_types=}")
