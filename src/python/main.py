@@ -1,140 +1,142 @@
-import time
-import argparse
+import lammps_io as io  # my code
+import homcloud.interface as hc
 import numpy as np
-import MDAnalysis as mda
-import h5py
-import sys
-import os
-
-# モジュールのパスを追加
-path_to_module = os.path.abspath(os.path.join(os.path.dirname(__file__), "../utils"))
-sys.path.append(path_to_module)
-import coordconv
 
 
-def parse_args():
+class HomologicalThreading:
     """
-    Parse command line arguments.
+    Class for computing the homological threading of ring polymers.
     """
-    parser = argparse.ArgumentParser(description="Parse LAMMPS data file path.")
-    parser.add_argument(
-        "--input",
-        required=True,
-        type=str,
-        help="Path to the INPUT LAMMPS data file, or tarfile.",
-    )
-    parser.add_argument(
-        "--hdf", type=str, default="output.h5", help="Path to the OUTPUT HDF5 file."
-    )
-    parser.add_argument(
-        "--lmpdata", type=str, default=None, help="Path to the OUTPUT data file."
-    )
-    return parser.parse_args()
+
+    def __init__(self):
+        self.pd_i = self.PD_i()
+        self.pd_i_cup_j = self.PD_i_cup_j()
+        self.pd_threading = self.PD_threading()
+
+    class PD_i:
+        """
+        Class for storing the persistence diagram of single ring polymer.
+        """
+
+        def __init__(self):
+            # shape: (nchains, npoints, 2) 0: birth, 1: death
+            self.pd = []  # 最終的には np.array に変換する
+
+        def compute(self, coords, dim=1):
+            """
+            Compute the persistence diagram of a single ring polymer.
+
+            args:
+            coords: np.array, shape=(nchains, nbeads, 3)
+            nbeads: int, number of beads in the polymer
+            nchains: int, number of chains in the polymer
+            dim: int, dimension of the homology group to compute
+            """
+            nchains = coords.shape[0]
+            pd_list = []  # 各チェインのPDを格納するリスト (shape: (npoints, 2))
+            for i in range(nchains):
+                polymer_coords = coords[i]
+                tmp = hc.PDList.from_alpha_filtration(polymer_coords)
+                pd_obj = tmp.dth_diagram(dim)
+                pd_chain = np.array(
+                    [pd_obj.births, pd_obj.deaths]
+                ).T  # (npoints, 2) 0: birth, 1: death
+                pd_list.append(pd_chain)
+            # pd_list を shape: (nchains, 2, npoints) -> (nchains, npoints, 2) に変換
+            # するため，padding 処理を行う
+            max_npoints = max([len(pd) for pd in pd_list])
+            # padding した空の配列を作成
+            pd_array = np.full((nchains, max_npoints, 2), np.nan)
+            # pd_list の各要素を pd_array にコピー
+            for i, pd in enumerate(pd_list):
+                pd_array[i, : len(pd)] = np.array(pd)
+            self.pd = pd_array
+
+    class PD_i_cup_j:
+        """
+        Class for storing the persistence diagram of the cup product of two ring polymers.
+        """
+
+        def __init__(self):
+            # shape: (nchains, nchains, npoints, 2) 0: birth, 1: death
+            self.pd = []
+
+        def compute(self, coords, dim=1):
+            """
+            Compute the persistence diagram of the cup product of two ring polymers.
+
+            args:
+            coords: np.array, shape=(nchains, nbeads, 3)
+            nbeads: int, number of beads in the polymer
+            nchains: int, number of chains in the polymer
+            dim: int, dimension of the homology group to compute
+            """
+            nchains = coords.shape[0]
+            pd_list = []
+            for i in range(nchains):
+                for j in range(nchains):
+                    if i == j:
+                        continue  # 同じチェイン同士は計算しない
+                    polymer_coords_i = coords[i]
+                    polymer_coords_j = coords[j]
+                    # Compute the persistence diagram of the cup product
+                    tmp = hc.PDList.from_alpha_filtration(
+                            np.concatenate([polymer_coords_i, polymer_coords_j])
+                    )
+                    pd_obj = tmp.dth_diagram(dim)
+                    pd_chain = np.array([pd_obj.births, pd_obj.deaths]).T
+                    pd_list.append(pd_chain)
+            # pd_list を shape: (nchains, nchains, 2, npoints) -> (nchains, nchains, npoints, 2) に変換
+            # するため，padding 処理を行う
+            max_npoints = max([len(pd) for pd in pd_list])
+            # padding した空の配列を作成
+            pd_array = np.full((nchains, nchains, max_npoints, 2), np.nan)
+            # pd_list の各要素を pd_array にコピー
+            for i, pd in enumerate(pd_list):
+                pd_array[i, : len(pd)] = np.array(pd)
+            self.pd = pd_array
 
 
-def get_coords_by_mol(universe, mol):
-    """
-    Mol ID で指定された分子の座標を取得する
-    """
-    # filter atoms by mol id (same as resid id in MDAnalysis)
-    atoms = universe.select_atoms(f"resid {mol}")
-    coords = atoms.positions
-    return coords
+    class PD_threading:
+        """
+        Class for storing the homological threading of ring polymers.
+        """
 
+        def __init__(self):
+            self.pd = []
 
-def replace_molids_in_data_file(original_data_file, output_data_file, N):
-    """
-    Replace molid in a LAMMPS data file. Each group of N atoms will have a unique molid.
+    def compute_pd(self, polymer_coords, dim=1):
+        """
+        Compute the persistence diagram of a single ring polymer.
 
-    Parameters:
-    original_data_file (str): Path to the original LAMMPS data file
-    output_data_file (str): Path to the output data file with updated molids
-    N (int): Number of atoms per molecule
-    """
-    with open(original_data_file, "r") as file:
-        lines = file.readlines()
-
-    with open(output_data_file, "w") as file:
-        atom_section = False
-        atom_id = 1
-        for line in lines:
-            if "Atoms" in line:  # Start of atom section
-                atom_section = True
-                file.write(line)
-                continue
-
-            # End of atom section if the line is empty or another section begins
-            if atom_section and (
-                "Bonds" in line or "Angles" in line or "Velocities" in line
-            ):
-                atom_section = False
-
-            if atom_section and line.strip() != "":
-                line_parts = line.split()
-                molid = (atom_id - 1) // N + 1  # Calculate new molid
-                line_parts[1] = str(molid)  # Replace molid in the line
-                updated_line = " ".join(line_parts) + "\n"
-                file.write(updated_line)
-                atom_id += 1
-            else:
-                file.write(line)
+        args:
+        """
+        tmp = hc.PDList.from_alpha_filtration(polymer_coords)
+        pd = hc.dth_diagram(tmp, dim)
+        births = pd.births
+        deaths = pd.deaths
+        return np.array([births, deaths]).T
 
 
 if __name__ == "__main__":
-    t1 = time.time()
-    # Parse command line arguments
-    args = parse_args()
-    path_lmpdata = args.input
-    path_h5data = args.hdf
-    path_outdata = args.lmpdata
-    # Check if the LAMMPS data file path is provided
-    if not path_lmpdata:
-        print(
-            "Error: Please provide the path to the LAMMPS data file using the --input option."
-        )
-        exit()
-    # Read LAMMPS Data file
-    try:
-        u = mda.Universe(path_lmpdata)
-    except IOError:
-        print("Error: Unable to read the LAMMPS data file. Please check the file path.")
-        exit()
-    # Get the number of beads, number of chains and total number of particles in system
-    resids = u.atoms.resids
-    nbeads = sum(1 for atom in u.atoms if atom.resid == 1)
-    nchains = len(set(atom.resid for atom in u.atoms))
-    nparticles = u.atoms.n_atoms
-    if nbeads * nchains != nparticles:
-        print("Error: The number of particles does NOT match the product of N*M")
-        print(f"N    : the number of beads = {nbeads}")
-        print(f"M    : the number of chains = {nchains}")
-        exit()
-    # WRAP
-    box_dim = u.dimensions[0]  # Assume orthorhombic box
-    center = np.array(
-        [0.50 * box_dim, 0.50 * box_dim, 0.50 * box_dim]
-    )  # the center of simulation cell
-    # wrap the coordinates with conserve bond configuration
-    wrapped_coords = coordconv.wrap_conserve_bondconf(
-        center, box_dim, nparticles, nbeads, u.atoms.positions
-    )
-    a = coordconv.com(wrapped_coords)
-    # put the center of mass of the system at the center of the simulation cell
-    wrapped_coords = coordconv.transfer_min_dist(
-        center, box_dim, nparticles, nbeads, wrapped_coords
-    )
-    # Update the coordinates in the Universe object
-    u.atoms.positions = wrapped_coords
-    a = coordconv.com(u.atoms.positions)
-    # Save the coordinates to HDF5 file
-    with h5py.File(path_h5data, "w") as f:
-        f.create_dataset("/1_CoordConv/polywrap_coords", data=u.atoms.positions)
-    # Save the coordinates to npy file
-    # np.save(path_npydata, u.atoms.positions)
-    # Write the updated universe to a LAMMPS data file
-    if args.lmpdata is not None:
-        with mda.Writer(path_outdata, u.atoms.n_atoms) as W:
-            W.write(u)
-        replace_molids_in_data_file(path_outdata, path_outdata, nbeads)
-    t2 = time.time()
-    print("Processing time: {:.2f} seconds".format(t2 - t1))
+    import time
+
+    # Load the coordinates of the ring polymers
+    data = io.LammpsData("../../../murashimaPolym/N2000/msd.N2000.1.data")
+    coords = np.array(data.atoms.coords)
+    # (nparticles, 3) -> (nchains, nbeads, 3)
+    nchains = data.atoms.num_mols
+    nbeads = len(coords) // nchains
+    coords = coords.reshape(nchains, nbeads, 3)
+
+    # Compute the persistence diagram of a single ring polymer
+    time_start = time.time()
+    pd_i = HomologicalThreading.PD_i()
+    pd_i.compute(coords, dim=1)
+    time_end = time.time()
+    print("Elapsed time for computing pd_i: ", time_end - time_start)
+    time_start = time.time()
+    pd_i_cup_j = HomologicalThreading.PD_i_cup_j() 
+    pd_i_cup_j.compute(coords, dim=1)
+    time_end = time.time()
+    print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)

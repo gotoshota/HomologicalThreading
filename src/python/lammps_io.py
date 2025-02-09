@@ -1,5 +1,5 @@
 import math
-
+import numpy as np
 
 class LammpsData:
     """
@@ -22,7 +22,7 @@ class LammpsData:
             filename (str): LAMMPSデータファイルのパス
         """
         self.filename = filename
-        self.atoms = self.Atom()  # 一貫して atoms としています
+        self.atoms = self.Atom()
         self.bonds = self.Bond()
         self.angles = self.Angle()
         self.box = self.Box()
@@ -49,9 +49,9 @@ class LammpsData:
         ボックス情報を保持するクラス
 
         Attributes:
-            x (tuple): x軸の範囲 (xlo, xhi)
-            y (tuple): y軸の範囲 (ylo, yhi)
-            z (tuple): z軸の範囲 (zlo, zhi)
+            x (tuple of float): x軸の範囲 (xlo, xhi)
+            y (tuple of float): y軸の範囲 (ylo, yhi)
+            z (tuple of float): z軸の範囲 (zlo, zhi)
             lx (float): x軸の長さ
             ly (float): y軸の長さ
             lz (float): z軸の長さ
@@ -73,11 +73,11 @@ class LammpsData:
             id (list of int): 原子IDのリスト
             mol_id (list of int): 分子IDのリスト
             type (list of int): 原子タイプのリスト
-            coords (list of tuple): 座標 (x, y, z) のリスト
+            coords (list of list of float): 座標 (x, y, z) のリスト
             num_atoms (int): 原子の総数
             num_mols (int): 分子の総数
             num_types (int): 原子タイプの数
-            image_flag (list of tuple): 原子のイメージフラグのリスト
+            image_flag (list of tuple of float): 原子のイメージフラグのリスト
         """
 
         def __init__(self):
@@ -88,7 +88,7 @@ class LammpsData:
             self.num_atoms = 0
             self.num_mols = 0
             self.num_types = 0
-            self.image_flag = []
+            self.image_flag = []  # list of tuple of float
 
     class Bond:
         """
@@ -213,11 +213,11 @@ class LammpsData:
                     self.atoms.id.append(int(parts[0]))
                     self.atoms.mol_id.append(int(parts[1]))
                     self.atoms.type.append(int(parts[2]))
-                    self.atoms.coords.append(
-                        (float(parts[3]), float(parts[4]), float(parts[5]))
-                    )
+                    self.atoms.coords.append([
+                        float(parts[3]), float(parts[4]), float(parts[5])
+                    ])
                     self.atoms.image_flag.append(
-                        (int(parts[6]), int(parts[7]), int(parts[8]))
+                        (float(parts[6]), float(parts[7]), float(parts[8]))
                     )
             elif current_section == "Masses":
                 if len(parts) >= 2:
@@ -323,12 +323,12 @@ class LammpsData:
                     else:
                         shift_val = 0
                     new_coord.append(current_coord[d] - shift_val * L)
-                    new_image.append(shift_val)
+                    new_image.append(float(shift_val))
                 unwrapped_coords.append(new_coord)
                 # image_flag はタプルの場合が多いので、リスト内各成分同士を足し合わせたタプルにする
                 unwrapped_image_flag.append(
                     tuple(
-                        a + b for a, b in zip(self.atoms.image_flag[idx[k]], new_image)
+                        float(a) + float(b) for a, b in zip(self.atoms.image_flag[idx[k]], new_image)
                     )
                 )
 
@@ -358,12 +358,12 @@ class LammpsData:
                 new_coord = [coord[d] + shift[d] for d in range(3)]
                 wrapped_coords.append(new_coord)
             for image_flag in unwrapped_image_flag:
-                new_img = [image_flag[d] + shift_image[d] for d in range(3)]
+                new_img = [float(image_flag[d]) + float(shift_image[d]) for d in range(3)]
                 new_image_flag.append(new_img)
 
             # 5. 元の座標リストと image_flag を更新
             for index, new_coord in zip(idx, wrapped_coords):
-                self.atoms.coords[index] = tuple(new_coord)
+                self.atoms.coords[index] = new_coord
             for index, new_img in zip(idx, new_image_flag):
                 self.atoms.image_flag[index] = tuple(new_img)
 
