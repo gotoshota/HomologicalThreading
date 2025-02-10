@@ -198,7 +198,7 @@ class HomologicalThreading:
             # 各チェイン i について，内側の結果 pd_list_chain を取り出す
             # ※ 内側のリストは _worker 内で既に j の昇順にソートしているが，念のためソートしておく
             pd_list = []
-            for (i, pd_list_chain) in all_results:
+            for i, pd_list_chain in all_results:
                 pd_list_chain.sort(key=lambda x: x[0])
                 # 内側は (j, pd_chain) のタプルなので，pd_chain 部分のみ抽出
                 pd_list.append([pd for (j, pd) in pd_list_chain])
@@ -213,7 +213,7 @@ class HomologicalThreading:
             for i, chain in enumerate(pd_list):
                 for j, pd in enumerate(chain):
                     pd = np.array(pd)
-                    pd_array[i, j, :len(pd)] = pd
+                    pd_array[i, j, : len(pd)] = pd
             self.pd = pd_array
 
         def _worker(self, args):
