@@ -1,6 +1,7 @@
 import math
 import numpy as np
 
+
 class LammpsData:
     """
     LAMMPSのデータファイルを読み込み，データを格納するクラス
@@ -176,7 +177,19 @@ class LammpsData:
                 self.angles.num_types = int(parts[0])
 
         # --- 2. セクション毎にデータをパース ---
-        section_names = ["Masses", "Atoms", "Bonds", "Angles", "Dihedrals", "Impropers"]
+        section_names = [
+            "Masses",
+            "Atoms",
+            "Bonds",
+            "Angles",
+            "Dihedrals",
+            "Impropers",
+            "Pair Coeffs",
+            "Bond Coeffs",
+            "Angle Coeffs",
+            "Dihedral Coeffs",
+            "Improper Coeffs",
+        ]
         current_section = None
         i = 0
         while i < len(lines):
@@ -213,9 +226,9 @@ class LammpsData:
                     self.atoms.id.append(int(parts[0]))
                     self.atoms.mol_id.append(int(parts[1]))
                     self.atoms.type.append(int(parts[2]))
-                    self.atoms.coords.append([
-                        float(parts[3]), float(parts[4]), float(parts[5])
-                    ])
+                    self.atoms.coords.append(
+                        [float(parts[3]), float(parts[4]), float(parts[5])]
+                    )
                     self.atoms.image_flag.append(
                         (float(parts[6]), float(parts[7]), float(parts[8]))
                     )
@@ -263,10 +276,12 @@ class LammpsData:
             f.write(f"Atoms\n\n")
             for i in range(self.atoms.num_atoms):
                 f.write(
-                    f"{self.atoms.id[i]} {self.atoms.mol_id[i]} {self.atoms.type[i]} "
+                    f"{self.atoms.id[i]} {self.atoms.mol_id[i]} {
+                        self.atoms.type[i]} "
                     f"{self.atoms.coords[i][0]} {self.atoms.coords[i][1]} "
                     f"{self.atoms.coords[i][2]} "
-                    f"{self.atoms.image_flag[i][0]} {self.atoms.image_flag[i][1]} {self.atoms.image_flag[i][2]}\n"
+                    f"{self.atoms.image_flag[i][0]} {self.atoms.image_flag[i][1]} {
+                        self.atoms.image_flag[i][2]}\n"
                 )
             f.write("\n")
             f.write("Bonds\n\n")
@@ -291,7 +306,8 @@ class LammpsData:
         # 分子IDは 1 から始まる
         for i in range(1, self.atoms.num_mols + 1):
             # 分子IDが i の原子のインデックスを取得
-            idx = [j for j, mol_id in enumerate(self.atoms.mol_id) if mol_id == i]
+            idx = [j for j, mol_id in enumerate(
+                self.atoms.mol_id) if mol_id == i]
             if not idx:
                 continue
 
@@ -328,7 +344,8 @@ class LammpsData:
                 # image_flag はタプルの場合が多いので、リスト内各成分同士を足し合わせたタプルにする
                 unwrapped_image_flag.append(
                     tuple(
-                        float(a) + float(b) for a, b in zip(self.atoms.image_flag[idx[k]], new_image)
+                        float(a) + float(b)
+                        for a, b in zip(self.atoms.image_flag[idx[k]], new_image)
                     )
                 )
 
@@ -358,7 +375,9 @@ class LammpsData:
                 new_coord = [coord[d] + shift[d] for d in range(3)]
                 wrapped_coords.append(new_coord)
             for image_flag in unwrapped_image_flag:
-                new_img = [float(image_flag[d]) + float(shift_image[d]) for d in range(3)]
+                new_img = [
+                    float(image_flag[d]) + float(shift_image[d]) for d in range(3)
+                ]
                 new_image_flag.append(new_img)
 
             # 5. 元の座標リストと image_flag を更新

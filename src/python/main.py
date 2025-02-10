@@ -42,8 +42,7 @@ class HomologicalThreading:
                     [pd_obj.births, pd_obj.deaths]
                 ).T  # (npoints, 2) 0: birth, 1: death
                 pd_list.append(pd_chain)
-            # pd_list を shape: (nchains, 2, npoints) -> (nchains, npoints, 2) に変換
-            # するため，padding 処理を行う
+            # pd_list [shape: (nchains, npoints, 2)] の npoints を揃えるため，padding 処理を行う
             max_npoints = max([len(pd) for pd in pd_list])
             # padding した空の配列を作成
             pd_array = np.full((nchains, max_npoints, 2), np.nan)
@@ -72,30 +71,36 @@ class HomologicalThreading:
             dim: int, dimension of the homology group to compute
             """
             nchains = coords.shape[0]
-            pd_list = []
+            pd_list = []  # shape: (nchains, nchains, npoints, 2)
             for i in range(nchains):
+                pd_list_chain = []  # shape: (nchains, npoints, 2)
                 for j in range(nchains):
                     if i == j:
+                        pd_list_chain.append([np.nan, np.nan])
                         continue  # 同じチェイン同士は計算しない
                     polymer_coords_i = coords[i]
                     polymer_coords_j = coords[j]
                     # Compute the persistence diagram of the cup product
                     tmp = hc.PDList.from_alpha_filtration(
-                            np.concatenate([polymer_coords_i, polymer_coords_j])
+                        np.concatenate([polymer_coords_i, polymer_coords_j])
                     )
                     pd_obj = tmp.dth_diagram(dim)
-                    pd_chain = np.array([pd_obj.births, pd_obj.deaths]).T
-                    pd_list.append(pd_chain)
-            # pd_list を shape: (nchains, nchains, 2, npoints) -> (nchains, nchains, npoints, 2) に変換
-            # するため，padding 処理を行う
-            max_npoints = max([len(pd) for pd in pd_list])
+                    pd_chain = np.array(
+                        [pd_obj.births, pd_obj.deaths]
+                        ).T  # shape: (npoints, 2)
+                    pd_list_chain.append(pd_chain)  # shape: (nchains, npoints, 2)
+                pd_list.append(pd_list_chain)
+            # pd_list [shape: (nchains, nchains, npoints, 2)] の npoints を揃えるため，padding 処理を行う
+            max_npoints = max(
+                [len(pd) for pd_list_chain in pd_list for pd in pd_list_chain]
+            )
             # padding した空の配列を作成
             pd_array = np.full((nchains, nchains, max_npoints, 2), np.nan)
             # pd_list の各要素を pd_array にコピー
-            for i, pd in enumerate(pd_list):
-                pd_array[i, : len(pd)] = np.array(pd)
+            for i, pd_list_chain in enumerate(pd_list):
+                for j, pd in enumerate(pd_list_chain):
+                    pd_array[i, j, : len(pd)] = np.array(pd)
             self.pd = pd_array
-
 
     class PD_threading:
         """
@@ -122,7 +127,7 @@ if __name__ == "__main__":
     import time
 
     # Load the coordinates of the ring polymers
-    data = io.LammpsData("../../../murashimaPolym/N2000/msd.N2000.1.data")
+    data = io.LammpsData("../../data/N10M100.data")
     coords = np.array(data.atoms.coords)
     # (nparticles, 3) -> (nchains, nbeads, 3)
     nchains = data.atoms.num_mols
@@ -136,7 +141,7 @@ if __name__ == "__main__":
     time_end = time.time()
     print("Elapsed time for computing pd_i: ", time_end - time_start)
     time_start = time.time()
-    pd_i_cup_j = HomologicalThreading.PD_i_cup_j() 
+    pd_i_cup_j = HomologicalThreading.PD_i_cup_j()
     pd_i_cup_j.compute(coords, dim=1)
     time_end = time.time()
     print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)
