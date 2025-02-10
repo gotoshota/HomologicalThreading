@@ -4,6 +4,7 @@ import numpy as np
 import h5py
 import multiprocessing as mp
 import os
+import fortran.compute as fc
 
 
 class HomologicalThreading:
@@ -14,7 +15,7 @@ class HomologicalThreading:
     def __init__(self):
         self.pd_i = self.PD_i()
         self.pd_i_cup_j = self.PD_i_cup_j()
-        self.pd_threading = self.PD_threading()
+        self.threading = self.Threading()
 
     class PD_i:
         """
@@ -244,13 +245,30 @@ class HomologicalThreading:
                 partial_pd_list.append((i, pd_list_chain))
             return partial_pd_list
 
-    class PD_threading:
+    class Threading:
         """
         Class for storing the homological threading of ring polymers.
         """
 
         def __init__(self):
-            self.pd = None
+            self.flags = None  # shape: (nchains, nchains, npoints same as pd_i)
+
+        def compute(self, pd_i, pd_i_cup_j):
+            """
+            Compute the homological threading of ring polymers.
+
+            args:
+            pd_i: np.array, shape=(nchains, npoints, 2)
+            pd_i_cup_j: np.array, shape=(nchains, nchains, npoints, 2)
+            """
+            nchains = pd_i.shape[0]
+            npoints = pd_i.shape[1]
+            flags = np.ones((nchains, nchains, npoints), dtype=np.int32)
+            flags = np.asfortranarray(flags)
+            pd_i = np.asfortranarray(pd_i)
+            pd_i_cup_j = np.asfortranarray(pd_i_cup_j)
+            fc.threading(pd_i, pd_i_cup_j, flags)
+            self.flags = flags.astype(bool)
 
     def to_hdf5(self, filename="pd.h5"):
         """
@@ -261,15 +279,16 @@ class HomologicalThreading:
                 f.create_dataset("pd_i", data=self.pd_i.pd)
             if self.pd_i_cup_j.pd is not None:
                 f.create_dataset("pd_i_cup_j", data=self.pd_i_cup_j.pd)
-            if self.pd_threading.pd is not None:
-                f.create_dataset("pd_threading", data=self.pd_threading.pd)
+            if self.threading.flags is not None:
+                f.create_dataset("threading", data=self.threading.flags)
 
 
 if __name__ == "__main__":
     import time
 
     # Load the coordinates of the ring polymers
-    data = io.LammpsData("../data/N10M100.data")
+    #data = io.LammpsData("../data/N10M100.data")
+    data = io.LammpsData("../../../Downloads/N100M100.data")
     coords = np.array(data.atoms.coords)
     # (nparticles, 3) -> (nchains, nbeads, 3)
     nchains = data.atoms.num_mols
@@ -277,17 +296,21 @@ if __name__ == "__main__":
     coords = coords.reshape(nchains, nbeads, 3)
 
     # Compute the persistence diagram of a single ring polymer
-    # print("mp=False")
-    # time_start = time.time()
-    # pds = HomologicalThreading()
-    # pds.pd_i.compute(coords, dim=1, mp=False)
-    # time_end = time.time()
-    # print("Elapsed time for computing pd_i: ", time_end - time_start)
-    # time_start = time.time()
-    # pds.pd_i_cup_j.compute(coords, dim=1, mp=False)
-    # time_end = time.time()
-    # print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)
-    # pds.to_hdf5("pd.h5")
+    print("mp=False")
+    time_start = time.time()
+    pds = HomologicalThreading()
+    pds.pd_i.compute(coords, dim=1, mp=False)
+    time_end = time.time()
+    print("Elapsed time for computing pd_i: ", time_end - time_start)
+    time_start = time.time()
+    pds.pd_i_cup_j.compute(coords, dim=1, mp=False)
+    time_end = time.time()
+    print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)
+    time_start = time.time()
+    pds.threading.compute(pds.pd_i.pd, pds.pd_i_cup_j.pd)
+    time_end = time.time()
+    print("Elapsed time for computing threading: ", time_end - time_start)
+    pds.to_hdf5("pd.h5")
 
     print("\nmp=True")
     time_start = time.time()
@@ -299,4 +322,8 @@ if __name__ == "__main__":
     pds.pd_i_cup_j.compute(coords, dim=1, mp=True)
     time_end = time.time()
     print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)
+    time_start = time.time()
+    pds.threading.compute(pds.pd_i.pd, pds.pd_i_cup_j.pd)
+    time_end = time.time()
+    print("Elapsed time for computing threading: ", time_end - time_start)
     pds.to_hdf5("pd_mp.h5")
