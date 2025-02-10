@@ -1,6 +1,7 @@
 import lammps_io as io  # my code
 import homcloud.interface as hc
 import numpy as np
+import h5py
 
 
 class HomologicalThreading:
@@ -20,7 +21,7 @@ class HomologicalThreading:
 
         def __init__(self):
             # shape: (nchains, npoints, 2) 0: birth, 1: death
-            self.pd = []  # 最終的には np.array に変換する
+            self.pd = None  # 最終的には np.array に変換する
 
         def compute(self, coords, dim=1):
             """
@@ -58,7 +59,7 @@ class HomologicalThreading:
 
         def __init__(self):
             # shape: (nchains, nchains, npoints, 2) 0: birth, 1: death
-            self.pd = []
+            self.pd = None
 
         def compute(self, coords, dim=1):
             """
@@ -87,7 +88,7 @@ class HomologicalThreading:
                     pd_obj = tmp.dth_diagram(dim)
                     pd_chain = np.array(
                         [pd_obj.births, pd_obj.deaths]
-                        ).T  # shape: (npoints, 2)
+                    ).T  # shape: (npoints, 2)
                     pd_list_chain.append(pd_chain)  # shape: (nchains, npoints, 2)
                 pd_list.append(pd_list_chain)
             # pd_list [shape: (nchains, nchains, npoints, 2)] の npoints を揃えるため，padding 処理を行う
@@ -108,19 +109,18 @@ class HomologicalThreading:
         """
 
         def __init__(self):
-            self.pd = []
+            self.pd = None
 
-    def compute_pd(self, polymer_coords, dim=1):
+    def to_hdf5(self, filename="pd.h5"):
         """
-        Compute the persistence diagram of a single ring polymer.
-
-        args:
+        Save the persistence diagrams to a HDF5 file.
         """
-        tmp = hc.PDList.from_alpha_filtration(polymer_coords)
-        pd = hc.dth_diagram(tmp, dim)
-        births = pd.births
-        deaths = pd.deaths
-        return np.array([births, deaths]).T
+        with h5py.File(filename, "w") as f:
+            if self.pd_i.pd is not None:
+                f.create_dataset("pd_i", data=self.pd_i.pd)
+            if self.pd_i_cup_j.pd is not None:
+                f.create_dataset("pd_i_cup_j", data=self.pd_i_cup_j.pd)
+            # f.create_dataset("pd_threading", data=self.pd_threading.pd)
 
 
 if __name__ == "__main__":
@@ -136,12 +136,12 @@ if __name__ == "__main__":
 
     # Compute the persistence diagram of a single ring polymer
     time_start = time.time()
-    pd_i = HomologicalThreading.PD_i()
-    pd_i.compute(coords, dim=1)
+    pds = HomologicalThreading()
+    pds.pd_i.compute(coords, dim=1)
     time_end = time.time()
     print("Elapsed time for computing pd_i: ", time_end - time_start)
     time_start = time.time()
-    pd_i_cup_j = HomologicalThreading.PD_i_cup_j()
-    pd_i_cup_j.compute(coords, dim=1)
+    pds.pd_i_cup_j.compute(coords, dim=1)
     time_end = time.time()
     print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)
+    pds.to_hdf5()
