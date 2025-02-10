@@ -77,8 +77,12 @@ class HomologicalThreading:
             pool.close()
             pool.join()
             # 並列化処理終了
-            # PD のリストを結合
-            pd_list.extend([pd for pd_chain in results for pd in pd_chain])
+            # 結果は各プロセス毎のリストになっているので、平坦化する
+            all_results = [item for sublist in results for item in sublist]
+            # チェインインデックスでソートする
+            all_results.sort(key=lambda x: x[0])
+            # ソート後、チェインごとの pd_chain 部分のみ抽出
+            pd_list = [pd_chain for (_, pd_chain) in all_results]
             # pd_list [shape: (nchains, npoints, 2)] の npoints を揃えるため，padding 処理を行う
             max_npoints = max([len(pd) for pd in pd_list])
             # padding した空の配列を作成
@@ -91,6 +95,7 @@ class HomologicalThreading:
         def _worker(self, args):
             """
             指定された範囲の計算を行う
+            戻り値は (chain_index, pd_chain) のリスト
             """
             ista, iend, coords, dim = args
             partial_pd_list = []
@@ -99,7 +104,7 @@ class HomologicalThreading:
                 tmp = hc.PDList.from_alpha_filtration(polymer_coords)
                 pd_obj = tmp.dth_diagram(dim)
                 pd_chain = np.array([pd_obj.births, pd_obj.deaths]).T
-                partial_pd_list.append(pd_chain)
+                partial_pd_list.append((i, pd_chain))
             return partial_pd_list
 
     class PD_i_cup_j:
@@ -171,7 +176,6 @@ class HomologicalThreading:
 
         def compute_mp(self, coords, dim=1, num_processes=None):
             nchains = coords.shape[0]
-            pd_list = []
             # 並列プロセス数を取得
             if num_processes is None:
                 num_processes = int(os.environ.get("OMP_NUM_THREADS", mp.cpu_count()))
@@ -187,21 +191,35 @@ class HomologicalThreading:
             pool.close()
             pool.join()
             # 並列化処理終了
-            # PD のリストを結合
-            pd_list.extend([pd for pd_chain in results for pd in pd_chain])
-            # pd_list [shape: (nchains, nchains, npoints, 2)] の npoints を揃えるため，padding 処理を行う
-            max_npoints = max([len(pd) for pd_chain in pd_list for pd in pd_chain])
-            # padding した空の配列を作成
+            # 結果は各プロセス毎のリストになっているので，平坦化する
+            all_results = [item for sublist in results for item in sublist]
+            # 外側（チェイン i）のインデックスでソート
+            all_results.sort(key=lambda x: x[0])
+            # 各チェイン i について，内側の結果 pd_list_chain を取り出す
+            # ※ 内側のリストは _worker 内で既に j の昇順にソートしているが，念のためソートしておく
+            pd_list = []
+            for (i, pd_list_chain) in all_results:
+                pd_list_chain.sort(key=lambda x: x[0])
+                # 内側は (j, pd_chain) のタプルなので，pd_chain 部分のみ抽出
+                pd_list.append([pd for (j, pd) in pd_list_chain])
+            # pd_list の形は (nchains, nchains, variable npoints, 2)
+            # 各結果の npoints（点の数）が異なるため，最大値を取得してパディングする
+            max_npoints = 0
+            for chain in pd_list:
+                for pd in chain:
+                    max_npoints = max(max_npoints, len(pd))
+            # 全体の pd_array を作成（不足部分は NaN で埋める）
             pd_array = np.full((nchains, nchains, max_npoints, 2), np.nan)
-            # pd_list の各要素を pd_array にコピー
-            for i, pd_list_chain in enumerate(pd_list):
-                for j, pd in enumerate(pd_list_chain):
-                    pd_array[i, j, : len(pd)] = np.array(pd)
+            for i, chain in enumerate(pd_list):
+                for j, pd in enumerate(chain):
+                    pd = np.array(pd)
+                    pd_array[i, j, :len(pd)] = pd
             self.pd = pd_array
 
         def _worker(self, args):
             """
             指定された範囲の計算を行う
+            戻り値は (chain_index, pd_chain) のリスト
             """
             ista, iend, coords, dim = args
             nchains = coords.shape[0]
@@ -210,7 +228,7 @@ class HomologicalThreading:
                 pd_list_chain = []
                 for j in range(nchains):
                     if i == j:
-                        pd_list_chain.append([np.nan, np.nan])
+                        pd_list_chain.append((j, [np.nan, np.nan]))
                         continue
                     polymer_coords_i = coords[i]
                     polymer_coords_j = coords[j]
@@ -220,8 +238,10 @@ class HomologicalThreading:
                     )
                     pd_obj = tmp.dth_diagram(dim)
                     pd_chain = np.array([pd_obj.births, pd_obj.deaths]).T
-                    pd_list_chain.append(pd_chain)
-                partial_pd_list.append(pd_list_chain)
+                    pd_list_chain.append((j, pd_chain))
+                # 内側のリストをチェイン j のインデックスでソート
+                pd_list_chain.sort(key=lambda x: x[0])
+                partial_pd_list.append((i, pd_list_chain))
             return partial_pd_list
 
     class PD_threading:
@@ -249,7 +269,7 @@ if __name__ == "__main__":
     import time
 
     # Load the coordinates of the ring polymers
-    data = io.LammpsData("../../data/N10M100.data")
+    data = io.LammpsData("../data/N10M100.data")
     coords = np.array(data.atoms.coords)
     # (nparticles, 3) -> (nchains, nbeads, 3)
     nchains = data.atoms.num_mols
@@ -257,6 +277,19 @@ if __name__ == "__main__":
     coords = coords.reshape(nchains, nbeads, 3)
 
     # Compute the persistence diagram of a single ring polymer
+    # print("mp=False")
+    # time_start = time.time()
+    # pds = HomologicalThreading()
+    # pds.pd_i.compute(coords, dim=1, mp=False)
+    # time_end = time.time()
+    # print("Elapsed time for computing pd_i: ", time_end - time_start)
+    # time_start = time.time()
+    # pds.pd_i_cup_j.compute(coords, dim=1, mp=False)
+    # time_end = time.time()
+    # print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)
+    # pds.to_hdf5("pd.h5")
+
+    print("\nmp=True")
     time_start = time.time()
     pds = HomologicalThreading()
     pds.pd_i.compute(coords, dim=1, mp=True)
@@ -266,4 +299,4 @@ if __name__ == "__main__":
     pds.pd_i_cup_j.compute(coords, dim=1, mp=True)
     time_end = time.time()
     print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)
-    pds.to_hdf5()
+    pds.to_hdf5("pd_mp.h5")
