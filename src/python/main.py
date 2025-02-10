@@ -120,7 +120,8 @@ class HomologicalThreading:
                 f.create_dataset("pd_i", data=self.pd_i.pd)
             if self.pd_i_cup_j.pd is not None:
                 f.create_dataset("pd_i_cup_j", data=self.pd_i_cup_j.pd)
-            # f.create_dataset("pd_threading", data=self.pd_threading.pd)
+            if self.pd_threading.pd is not None:
+                f.create_dataset("pd_threading", data=self.pd_threading.pd)
 
 
 if __name__ == "__main__":
