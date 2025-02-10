@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "cython>=3.0.11",
+    "h5py>=3.12.1",
     "homcloud>=4.6.0",
     "multiprocess>=0.70.17",
     "numpy>=2.2.2",
