@@ -288,7 +288,7 @@ if __name__ == "__main__":
 
     # Load the coordinates of the ring polymers
     #data = io.LammpsData("../data/N10M100.data")
-    data = io.LammpsData("../../../Downloads/N100M100.data")
+    data = io.LammpsData("../../../Downloads/N400M100.data")
     coords = np.array(data.atoms.coords)
     # (nparticles, 3) -> (nchains, nbeads, 3)
     nchains = data.atoms.num_mols
