@@ -252,6 +252,7 @@ class HomologicalThreading:
 
         def __init__(self):
             self.flags = None  # shape: (nchains, nchains, npoints same as pd_i)
+            self.pd = None # shape: (nchains, nchains, npoints, 2)
 
         def compute(self, pd_i, pd_i_cup_j):
             """
@@ -263,11 +264,14 @@ class HomologicalThreading:
             """
             nchains = pd_i.shape[0]
             npoints = pd_i.shape[1]
-            flags = np.ones((nchains, nchains, npoints), dtype=np.int32)
+            flags = np.ones((nchains, nchains), dtype=np.int32)
+            pd = np.zeros((nchains, nchains, npoints, 2), dtype=np.float64)
+            # Fortran 用に配列を変換
             flags = np.asfortranarray(flags)
             pd_i = np.asfortranarray(pd_i)
             pd_i_cup_j = np.asfortranarray(pd_i_cup_j)
-            fc.threading(pd_i, pd_i_cup_j, flags)
+            pd = np.asfortranarray(pd)
+            fc.threading(pd_i, pd_i_cup_j, flags, pd)
             self.flags = flags.astype(bool)
 
     def to_hdf5(self, filename="pd.h5"):
@@ -280,7 +284,9 @@ class HomologicalThreading:
             if self.pd_i_cup_j.pd is not None:
                 f.create_dataset("pd_i_cup_j", data=self.pd_i_cup_j.pd)
             if self.threading.flags is not None:
-                f.create_dataset("threading", data=self.threading.flags)
+                f.create_dataset("threading_flags", data=self.threading.flags)
+            if self.threading.pd is not None:
+                f.create_dataset("threading_pd", data=self.threading.pd)
 
 
 if __name__ == "__main__":
