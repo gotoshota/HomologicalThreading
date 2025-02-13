@@ -246,6 +246,25 @@ class LammpsData:
             i += 1
         # 被ってない，mol_id の数を数える
         self.atoms.num_mols = len(set(self.atoms.mol_id))
+        # Atom, Bond セクションのデータを sort
+        self.atoms.id, self.atoms.mol_id, self.atoms.type, self.atoms.coords, self.atoms.image_flag = map(list, zip(
+            *sorted(
+                zip(
+                    self.atoms.id,
+                    self.atoms.mol_id,
+                    self.atoms.type,
+                    self.atoms.coords,
+                    self.atoms.image_flag,
+                ),
+                key=lambda x: x[0],
+            )
+        ))
+        self.bonds.id, self.bonds.type, self.bonds.atoms = map(list, zip(
+            *sorted(
+                zip(self.bonds.id, self.bonds.type, self.bonds.atoms),
+                key=lambda x: x[0],
+            )
+        ))
 
     def write(self, filename):
         """
@@ -389,7 +408,7 @@ class LammpsData:
 
 # 動作確認用（必要に応じてパスを適宜変更してください）
 if __name__ == "__main__":
-    data = LammpsData("../../../murashimaPolym/N2000/msd.N2000.1.data")
+    data = LammpsData("../../../tmp/murashima/N100M100.data")
     # Test box
     print(f"{data.box.x=}")
     print(f"{data.box.y=}")
@@ -402,6 +421,7 @@ if __name__ == "__main__":
     print(f"{data.atoms.num_atoms=}")
     print(f"{data.atoms.num_mols=}")
     print(f"{data.atoms.num_types=}")
+    print(f"{type(data.atoms.coords)=}")
 
     # Test bonds
     print(f"{data.bonds.num_bonds=}")
