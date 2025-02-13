@@ -3,8 +3,16 @@ import homcloud.interface as hc
 import numpy as np
 import h5py
 import multiprocessing as mp
-import os
 import fortran.compute as fc
+import os
+import sys
+if sys.stdin.closed:
+    sys.stdin = open(os.devnull, 'r')
+if sys.stdout.closed:
+    sys.stdout = open(os.devnull, 'w')
+if sys.stderr.closed:
+    sys.stderr = open(os.devnull, 'w')
+
 
 
 class HomologicalThreading:
@@ -273,6 +281,7 @@ class HomologicalThreading:
             pd = np.asfortranarray(pd)
             fc.threading(pd_i, pd_i_cup_j, flags, pd)
             self.flags = flags.astype(bool)
+            self.pd = pd
 
     def to_hdf5(self, filename="pd.h5"):
         """
