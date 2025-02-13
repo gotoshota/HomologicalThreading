@@ -477,6 +477,7 @@ dependencies = [
     { name = "cython" },
     { name = "h5py" },
     { name = "homcloud" },
+    { name = "meson" },
     { name = "multiprocess" },
     { name = "numpy" },
     { name = "pyqt6" },
@@ -490,6 +491,7 @@ requires-dist = [
     { name = "cython", specifier = ">=3.0.11" },
     { name = "h5py", specifier = ">=3.12.1" },
     { name = "homcloud", specifier = ">=4.6.0" },
+    { name = "meson", specifier = ">=1.7.0" },
     { name = "multiprocess", specifier = ">=0.70.17" },
     { name = "numpy", specifier = ">=2.2.2" },
     { name = "pyqt6", specifier = ">=6.8.1" },
@@ -920,6 +922,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/20/1e/caa4f15c020de3e3486b4133ca689236bd3863a3d6dd0f58e97ce86a296a/meshio-5.3.5.tar.gz", hash = "sha256:f21f01abd9f29ba06ea119304b3d39e610421cfe93b9dd23362834919f87586d", size = 490922 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/89/5f/39cbadc320cd78f4834b0a9f7a2fa3c980dca942bf193f315837eacb8870/meshio-5.3.5-py3-none-any.whl", hash = "sha256:0736c6e34ecc768f62f2cde5d8233a3529512a9399b25c68ea2ca0d5900cdc10", size = 166162 },
+]
+
+[[package]]
+name = "meson"
+version = "1.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/02/98/bbcaf6caaaa0510a68834f119ac793a8abade6ff827fc2791eeb6f8b4a66/meson-1.7.0.tar.gz", hash = "sha256:08efbe84803eed07f863b05092d653a9d348f7038761d900412fddf56deb0284", size = 2293975 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/3b/63fdad828b4cbeb49cef3aad26f3edfbc72f37a0ab54917d445ec0b9d9ff/meson-1.7.0-py3-none-any.whl", hash = "sha256:ae3f12953045f3c7c60e27f2af1ad862f14dee125b4ed9bcb8a842a5080dbf85", size = 990540 },
 ]
 
 [[package]]

@@ -8,6 +8,7 @@ dependencies = [
     "cython>=3.0.11",
     "h5py>=3.12.1",
     "homcloud>=4.6.0",
+    "meson>=1.7.0",
     "multiprocess>=0.70.17",
     "numpy>=2.2.2",
     "pyqt6>=6.8.1",
