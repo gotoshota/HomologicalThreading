@@ -7,6 +7,8 @@ import fortran.compute as fc
 import os
 import sys
 
+from scipy.spatial import KDTree
+
 if sys.stdin.closed:
     sys.stdin = open(os.devnull, "r")
 if sys.stdout.closed:
@@ -65,7 +67,8 @@ class HomologicalThreading:
             pd_array = np.full((nchains, max_npoints, 2), np.nan)
             # pd_list の各要素を pd_array にコピー
             for i, pd in enumerate(pd_list):
-                pd_array[i, : len(pd)] = np.array(pd)
+                rows, cols = pd.shape
+                pd_array[i, :rows, :cols] = pd
             self.pd = pd_array
 
         def compute_mp(self, coords, dim=1, num_processes=None):
@@ -268,29 +271,94 @@ class HomologicalThreading:
 
             args:
             pd_i: np.array, shape=(nchains, npoints, 2)
-            pd_i_cup_j: np.array, shape=(nchains, nchains, npoints, 2)
+            pd_i_cup_j: np.array, shape=(nchains, nchains, npoints', 2)
             """
             nchains = pd_i.shape[0]
             npoints = pd_i.shape[1]
+
             # Fortran 用に配列を用意
             # pd_fort : (2, npoints, active, passive)
             pd_fort = np.zeros((2, npoints, nchains, nchains), dtype=np.float64)
             pd_fort = np.asfortranarray(pd_fort)
+
             # pd_i: (passive, npoints, 2) -> pd_i_fort: (2, npoints, passive)
             pd_i_fort = np.asfortranarray(pd_i.T)
+
             # pd_i_cup_j: (passive, active, npoints, 2) ->
             # pd_i_cup_j_fort: (2, npoints, active, passive)
             pd_i_cup_j_fort = np.asfortranarray(pd_i_cup_j.T)
+
             # flags_fort: (active, passive)
             flags_fort = np.ones((nchains, nchains), dtype=np.int32)
             flags_fort = np.asfortranarray(flags_fort)
+
             # Fortran で homological threading を計算
             fc.threading(pd_i_fort, pd_i_cup_j_fort, flags_fort, pd_fort)
+            mask = pd_fort == -1
+            pd_fort[mask] = np.nan
+
             # Fortran からの返り値を python 用に変換
-            pd_i = pd_i_fort.T
-            pd_i_cup_j = pd_i_cup_j_fort.T
             self.pd = pd_fort.T
             self.flags = flags_fort.astype(bool)
+
+        def compute_kdtree(self, pd_i, pd_i_cup_j, tol=1e-10):
+            """
+            Copute the homological threading of ring polymers using KDTree.
+
+            args:
+            pd_i: np.array, shape=(nchains, npoints, 2)
+            pd_i_cup_j: np.array, shape=(nchains, nchains, npoints', 2)
+            tol: float, tolerance for the KDTree
+            """
+            print("This function is not implemented yet.")
+            print("Please use the compute method.")
+            return
+
+            nchains = pd_i.shape[0]
+            npoints = pd_i.shape[1]
+            threading_pd = np.zeros((nchains, nchains, npoints, 2), dtype=np.float64)
+            for passive_idx in range(nchains):
+                for active_idx in range(nchains):
+                    threading_pd[passive_idx, active_idx] = self.set_difference(
+                        pd_i[passive_idx], pd_i_cup_j[passive_idx, active_idx], tol
+                    )
+
+        def set_difference(self, A, B, tol=1e-10):
+            """
+            Compute the difference of two persistence diagrams.
+
+            args:
+            A: np.array, shape=(npoints, 2)
+            B: np.array, shape=(npoints', 2)
+            tol: float, tolerance for the KDTree
+
+            return C = A / B
+            """
+            if B.size == 0:
+                return A.copy()
+
+            # Bに対して KDTree を構築
+            # nan は 削除する
+            B_prime = B[~np.isnan(B).any(axis=1)]
+            if B_prime.size == 0:
+                return A.copy()
+            tree = KDTree(B_prime)
+            # Aの各点に対して最近傍点を探索
+            C_prime = []
+            for point in A:
+                if np.isnan(point).any():
+                    continue
+                if not tree.query_ball_point(point, tol):
+                    C_prime.append(point)
+
+            if len(C_prime) == 0:
+                C = np.full(A.shape, np.nan)
+            else:
+                # C を padding して返す
+                C = np.full(A.shape, np.nan)
+                C[: len(C_prime), :] = np.array(C_prime)
+
+            return C
 
     def to_hdf5(self, filename="pd.h5"):
         """
@@ -307,17 +375,20 @@ class HomologicalThreading:
                 f.create_dataset("threading_pd", data=self.threading.pd)
 
 
-if __name__ == "__main__":
-    import time
-
+def test():
     # Load the coordinates of the ring polymers
-    # data = io.LammpsData("../data/N10M100.data")
-    data = io.LammpsData("../../../Downloads/N100M100.data")
+    data = io.LammpsData("../../../tmp/murashima/N100M100.data")
+    # data = io.LammpsData("../../../tmp/murashima/stiff/prod.data")
+    data.polyWrap()
     coords = np.array(data.atoms.coords)
-    # (nparticles, 3) -> (nchains, nbeads, 3)
     nchains = data.atoms.num_mols
-    nbeads = len(coords) // nchains
+    nbeads = data.atoms.num_atoms // nchains
+    # (nparticles, 3) -> (nchains, nbeads, 3)
     coords = coords.reshape(nchains, nbeads, 3)
+    # Compute the bond length of the polymer
+    # bondlengths = calc_bondlength(coords)
+    # print(f"{bondlengths.shape=}")
+    # print(f"{np.max(bondlengths)=}")
 
     # Compute the persistence diagram of a single ring polymer
     print("mp=False")
@@ -351,3 +422,43 @@ if __name__ == "__main__":
     time_end = time.time()
     print("Elapsed time for computing threading: ", time_end - time_start)
     pds.to_hdf5("pd_mp.h5")
+
+
+def test_kdtree():
+    # Load the coordinates of the ring polymers
+    data = io.LammpsData("../../../tmp/murashima/N100M100.data")
+    # data = io.LammpsData("../../../tmp/murashima/stiff/prod.data")
+    data.polyWrap()
+    coords = np.array(data.atoms.coords)
+    nchains = data.atoms.num_mols
+    nbeads = data.atoms.num_atoms // nchains
+    # (nparticles, 3) -> (nchains, nbeads, 3)
+    coords = coords.reshape(nchains, nbeads, 3)
+
+    time_start = time.time()
+    pds = HomologicalThreading()
+    pds.pd_i.compute(coords, dim=1, mp=True)
+    time_end = time.time()
+    print("Elapsed time for computing pd_i: ", time_end - time_start)
+    time_start = time.time()
+    pds.pd_i_cup_j.compute(coords, dim=1, mp=True)
+    time_end = time.time()
+    print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)
+    time_start = time.time()
+    pds.threading.compute(pds.pd_i.pd, pds.pd_i_cup_j.pd)
+    time_end = time.time()
+    print("Elapsed time for computing threading: ", time_end - time_start)
+    pds.to_hdf5("pd.h5")
+
+    # time_start = time.time()
+    # pds.threading.compute_kdtree(pds.pd_i.pd, pds.pd_i_cup_j.pd)
+    # time_end = time.time()
+    # print("Elapsed time for computing threading using KDTree: ", time_end - time_start)
+    # pds.to_hdf5("pd_kdtree.h5")
+
+
+if __name__ == "__main__":
+    import time
+
+    test_kdtree()
+    # test()
