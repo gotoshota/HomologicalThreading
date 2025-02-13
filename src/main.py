@@ -6,13 +6,13 @@ import multiprocessing as mp
 import fortran.compute as fc
 import os
 import sys
-if sys.stdin.closed:
-    sys.stdin = open(os.devnull, 'r')
-if sys.stdout.closed:
-    sys.stdout = open(os.devnull, 'w')
-if sys.stderr.closed:
-    sys.stderr = open(os.devnull, 'w')
 
+if sys.stdin.closed:
+    sys.stdin = open(os.devnull, "r")
+if sys.stdout.closed:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr.closed:
+    sys.stderr = open(os.devnull, "w")
 
 
 class HomologicalThreading:
@@ -260,7 +260,7 @@ class HomologicalThreading:
 
         def __init__(self):
             self.flags = None  # shape: (nchains, nchains, npoints same as pd_i)
-            self.pd = None # shape: (nchains, nchains, npoints, 2)
+            self.pd = None  # shape: (nchains, nchains, npoints, 2)
 
         def compute(self, pd_i, pd_i_cup_j):
             """
@@ -272,16 +272,25 @@ class HomologicalThreading:
             """
             nchains = pd_i.shape[0]
             npoints = pd_i.shape[1]
-            flags = np.ones((nchains, nchains), dtype=np.int32)
-            pd = np.zeros((nchains, nchains, npoints, 2), dtype=np.float64)
-            # Fortran 用に配列を変換
-            flags = np.asfortranarray(flags)
-            pd_i = np.asfortranarray(pd_i)
-            pd_i_cup_j = np.asfortranarray(pd_i_cup_j)
-            pd = np.asfortranarray(pd)
-            fc.threading(pd_i, pd_i_cup_j, flags, pd)
-            self.flags = flags.astype(bool)
-            self.pd = pd
+            # Fortran 用に配列を用意
+            # pd_fort : (2, npoints, active, passive)
+            pd_fort = np.zeros((2, npoints, nchains, nchains), dtype=np.float64)
+            pd_fort = np.asfortranarray(pd_fort)
+            # pd_i: (passive, npoints, 2) -> pd_i_fort: (2, npoints, passive)
+            pd_i_fort = np.asfortranarray(pd_i.T)
+            # pd_i_cup_j: (passive, active, npoints, 2) ->
+            # pd_i_cup_j_fort: (2, npoints, active, passive)
+            pd_i_cup_j_fort = np.asfortranarray(pd_i_cup_j.T)
+            # flags_fort: (active, passive)
+            flags_fort = np.ones((nchains, nchains), dtype=np.int32)
+            flags_fort = np.asfortranarray(flags_fort)
+            # Fortran で homological threading を計算
+            fc.threading(pd_i_fort, pd_i_cup_j_fort, flags_fort, pd_fort)
+            # Fortran からの返り値を python 用に変換
+            pd_i = pd_i_fort.T
+            pd_i_cup_j = pd_i_cup_j_fort.T
+            self.pd = pd_fort.T
+            self.flags = flags_fort.astype(bool)
 
     def to_hdf5(self, filename="pd.h5"):
         """
@@ -302,8 +311,8 @@ if __name__ == "__main__":
     import time
 
     # Load the coordinates of the ring polymers
-    #data = io.LammpsData("../data/N10M100.data")
-    data = io.LammpsData("../../../Downloads/N400M100.data")
+    # data = io.LammpsData("../data/N10M100.data")
+    data = io.LammpsData("../../../Downloads/N100M100.data")
     coords = np.array(data.atoms.coords)
     # (nparticles, 3) -> (nchains, nbeads, 3)
     nchains = data.atoms.num_mols
