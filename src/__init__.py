@@ -1,1 +1,2 @@
-import lammps_io
+from lammps_io import *
+from main import *

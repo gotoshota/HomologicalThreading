@@ -46,7 +46,7 @@ class HomologicalThreading:
 
     def print_metadata(self):
         for key, value in self.metadata.items():
-            print(key, value)
+            print(f"{key}: {value}")
 
     def read_lmpdata(self, filename):
         """
@@ -70,6 +70,7 @@ class HomologicalThreading:
         self.metadata["nbeads"] = nbeads
         self.metadata["nparticles"] = nchains * nbeads
         self.metadata["box_dim"] = box_dim
+        self.metadata["source"] = filename
 
         # (nparticles, 3) -> (nchains, nbeads, 3)
         coords = coords.reshape(nchains, nbeads, 3)
