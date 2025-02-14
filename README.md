@@ -25,8 +25,10 @@ sudo apt install libcgal-dev
 管理者権限がない場合は，ユーザーローカルにインストールすることもできます．
 いくつかの外部ライブラリが必要です．
 
-    - BOOST
+- BOOST
 
+    brew などでCGALをインストールすると，自動的にインストールされるはずです．
+    ローカルにインストールする場合は，別途自前でインストールしてください．
     基本的には公式HPのインストール方法に従ってください．
     https://www.boost.org/doc/libs/1_79_0/more/getting_started/unix-variants.html
     など．
