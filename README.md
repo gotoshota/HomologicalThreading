@@ -12,9 +12,12 @@ pip install uv
 - Python 3.13 or later
 
 - Fortran compiler (gfortran など)
-ifx などの Fortran コンパクト
+
+ifx などの Fortran コンパイラが必要です.
+デフォルトでは gfortran をMakefileで指定していますが，必要に応じて変更してください．
 
 - CGAL 
+
 システム全体にインストールする場合は単に，apt や brew などでインストールしてください．
 ```bash
 sudo apt install libcgal-dev
@@ -22,6 +25,7 @@ sudo apt install libcgal-dev
 管理者権限がない場合は，ユーザーローカルにインストールすることもできます．
 いくつかの外部ライブラリが必要です．
     - BOOST
+
     基本的には公式HPのインストール方法に従ってください．
     https://www.boost.org/doc/libs/1_79_0/more/getting_started/unix-variants.html
     など．
@@ -43,6 +47,7 @@ sudo apt install libcgal-dev
     などでインストールした後，`CGAL-5.6.2` があるディレクトリに $LD_LIBRARY_PATH を通しておくといいかも．
 
 - Python 仮想環境
+
 uv で仮想環境を作成してください．
 ```bash
 uv sync
