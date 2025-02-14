@@ -18,6 +18,7 @@ ifx などの Fortran コンパイラが必要です.
 
 - CGAL 
 
+HomCloudが依存．
 システム全体にインストールする場合は単に，apt や brew などでインストールしてください．
 ```bash
 sudo apt install libcgal-dev
@@ -25,6 +26,8 @@ sudo apt install libcgal-dev
 管理者権限がない場合は，ユーザーローカルにインストールすることもできます．
 いくつかの外部ライブラリが必要です．
 
+---
+#### CGALをローカルにインストール
 - BOOST
 
     brew などでCGALをインストールすると，自動的にインストールされるはずです．
@@ -39,15 +42,17 @@ sudo apt install libcgal-dev
     ./bootstrap.sh 
     ./b2 headers
     ```
-    などでインストールした後，`boost_1_79_0` があるディレクトリに $LD_LIBRARY_PATH を通してください．
+    などでインストールした後，`boost_1_79_0` があるディレクトリに `$LD_LIBRARY_PATH` を通してください．
 
-    - CGAL
+ - CGAL
     こちらも公式HPのインストール方法に従ってください．
     ```bash
     wget https://github.com/CGAL/cgal/releases/download/v5.6.2/CGAL-5.6.2.tar.xz
     tar xvf CGAL-5.6.2.tar.xz
     ```
-    などでインストールした後，`CGAL-5.6.2` があるディレクトリに $LD_LIBRARY_PATH を通しておくといいかも．
+    などでインストールした後，`CGAL-5.6.2` があるディレクトリに `$LD_LIBRARY_PATH` を通しておくといいかも．
+
+---
 
 - Python 仮想環境
 
@@ -60,3 +65,10 @@ uv sync
 CPLUS_INCLUDE_PATH=/path/to/CGAL-5.6.2/include:$CPLUS_INCLUDE_PATH uv sync
 ```
 とするといいかもしれません．
+
+### build
+```bash
+./build.sh
+```
+としてください．
+Fortranのコンパイラが見つからない場合は，`src/fortran/Makefile`の FC を適切なコンパイラに設定してください．
