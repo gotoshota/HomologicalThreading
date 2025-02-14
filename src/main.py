@@ -6,6 +6,7 @@ import multiprocessing as mp
 import fortran.compute as fc
 import os
 import sys
+import time
 
 from scipy.spatial import KDTree
 
@@ -17,23 +18,71 @@ if sys.stderr.closed:
     sys.stderr = open(os.devnull, "w")
 
 
+version = "0.1.0"
+
+
 class HomologicalThreading:
     """
     Class for computing the homological threading of ring polymers.
     """
 
-    def __init__(self):
-        self.pd_i = self.PD_i()
-        self.pd_i_cup_j = self.PD_i_cup_j()
-        self.threading = self.Threading()
+    def __init__(self, rho=None, epsilon_theta=None, source=None):
+        self.pd_i = self.PD_i(self)
+        self.pd_i_cup_j = self.PD_i_cup_j(self)
+        self.threading = self.Threading(self)
+        self.metadata = {
+            "description": "Homological threading of ring polymers",
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "version": version,
+            "nchains": None,
+            "nbeads": None,
+            "nparticles": None,
+            "box_dim": None,
+            "rho": rho,
+            "epsilon_theta": epsilon_theta,
+            "source": source if source else "Unknown",
+            "threading_threshold": None,
+        }
+
+    def print_metadata(self):
+        for key, value in self.metadata.items():
+            print(key, value)
+
+    def read_lmpdata(self, filename):
+        """
+        Read the coordinates of the ring polymers from a LAMMPS data file.
+
+        args:
+        filename: str, path to the LAMMPS data file
+
+        return:
+        coords: np.array, shape=(nchains, nbeads, 3)
+        """
+        data = io.LammpsData(filename)
+        data.polyWrap()
+        coords = np.array(data.atoms.coords)
+        nchains = data.atoms.num_mols
+        nbeads = data.atoms.num_atoms // nchains
+        box_dim = data.box.lx
+
+        # Metadata に情報を格納
+        self.metadata["nchains"] = nchains
+        self.metadata["nbeads"] = nbeads
+        self.metadata["nparticles"] = nchains * nbeads
+        self.metadata["box_dim"] = box_dim
+
+        # (nparticles, 3) -> (nchains, nbeads, 3)
+        coords = coords.reshape(nchains, nbeads, 3)
+        return coords
 
     class PD_i:
         """
         Class for storing the persistence diagram of single ring polymer.
         """
 
-        def __init__(self):
+        def __init__(self, parent):
             # shape: (nchains, npoints, 2) 0: birth, 1: death
+            self.parent = parent
             self.pd = None  # 最終的には np.array に変換する
 
         def compute(self, coords, dim=1, mp=False, num_processes=None):
@@ -53,7 +102,12 @@ class HomologicalThreading:
                 self.compute_single(coords, dim)
 
         def compute_single(self, coords, dim=1):
-            nchains = coords.shape[0]
+            nchains = coords.shape[0]  # coords: (nchains, nbeads, 3)
+            nbeads = coords.shape[1]
+            self.parent.metadata["nchains"] = nchains
+            self.parent.metadata["nbeads"] = nbeads
+            self.parent.metadata["nparticles"] = nchains * nbeads
+
             pd_list = []  # 各チェインのPDを格納するリスト (shape: (npoints, 2))
             for i in range(nchains):
                 polymer_coords = coords[i]
@@ -73,6 +127,10 @@ class HomologicalThreading:
 
         def compute_mp(self, coords, dim=1, num_processes=None):
             nchains = coords.shape[0]
+            nbeads = coords.shape[1]
+            self.parent.metadata["nchains"] = nchains
+            self.parent.metadata["nbeads"] = nbeads
+            self.parent.metadata["nparticles"] = nchains * nbeads
             pd_list = []  # 各チェインのPDを格納するリスト (shape: (npoints, 2))
             # 並列プロセス数を取得
             if num_processes is None:
@@ -124,8 +182,9 @@ class HomologicalThreading:
         Class for storing the persistence diagram of the cup product of two ring polymers.
         """
 
-        def __init__(self):
+        def __init__(self, parent):
             # shape: (nchains, nchains, npoints, 2) 0: birth, 1: death
+            self.parent = parent
             self.pd = None
 
         def compute(self, coords, dim=1, mp=False, num_processes=None):
@@ -155,6 +214,10 @@ class HomologicalThreading:
             dim: int, dimension of the homology group to compute
             """
             nchains = coords.shape[0]
+            nbeads = coords.shape[1]
+            self.parent.metadata["nchains"] = nchains
+            self.parent.metadata["nbeads"] = nbeads
+            self.parent.metadata["nparticles"] = nchains * nbeads
             pd_list = []  # shape: (nchains, nchains, npoints, 2)
             for i in range(nchains):
                 pd_list_chain = []  # shape: (nchains, npoints, 2)
@@ -188,6 +251,10 @@ class HomologicalThreading:
 
         def compute_mp(self, coords, dim=1, num_processes=None):
             nchains = coords.shape[0]
+            nbeads = coords.shape[1]
+            self.parent.metadata["nchains"] = nchains
+            self.parent.metadata["nbeads"] = nbeads
+            self.parent.metadata["nparticles"] = nchains * nbeads
             # 並列プロセス数を取得
             if num_processes is None:
                 num_processes = int(os.environ.get("OMP_NUM_THREADS", mp.cpu_count()))
@@ -261,11 +328,12 @@ class HomologicalThreading:
         Class for storing the homological threading of ring polymers.
         """
 
-        def __init__(self):
+        def __init__(self, parent):
+            self.parent = parent
             self.flags = None  # shape: (nchains, nchains, npoints same as pd_i)
             self.pd = None  # shape: (nchains, nchains, npoints, 2)
 
-        def compute(self, pd_i, pd_i_cup_j):
+        def compute(self, pd_i, pd_i_cup_j, threshold=1e-10):
             """
             Compute the homological threading of ring polymers.
 
@@ -275,6 +343,7 @@ class HomologicalThreading:
             """
             nchains = pd_i.shape[0]
             npoints = pd_i.shape[1]
+            self.parent.metadata["threading_threshold"] = threshold
 
             # Fortran 用に配列を用意
             # pd_fort : (2, npoints, active, passive)
@@ -293,7 +362,7 @@ class HomologicalThreading:
             flags_fort = np.asfortranarray(flags_fort)
 
             # Fortran で homological threading を計算
-            fc.threading(pd_i_fort, pd_i_cup_j_fort, flags_fort, pd_fort)
+            fc.threading(pd_i_fort, pd_i_cup_j_fort, flags_fort, pd_fort, threshold)
             mask = pd_fort == -1
             pd_fort[mask] = np.nan
 
@@ -360,84 +429,64 @@ class HomologicalThreading:
 
             return C
 
-    def to_hdf5(self, filename="pd.h5"):
+    def to_hdf5(self, filename):
         """
         Save the persistence diagrams to a HDF5 file.
         """
         with h5py.File(filename, "w") as f:
             if self.pd_i.pd is not None:
-                f.create_dataset("pd_i", data=self.pd_i.pd)
+                f.create_group("pd_i")
+                f.create_dataset("pd_i/pd", data=self.pd_i.pd)
             if self.pd_i_cup_j.pd is not None:
-                f.create_dataset("pd_i_cup_j", data=self.pd_i_cup_j.pd)
-            if self.threading.flags is not None:
-                f.create_dataset("threading_flags", data=self.threading.flags)
-            if self.threading.pd is not None:
-                f.create_dataset("threading_pd", data=self.threading.pd)
+                f.create_group("pd_i_cup_j")
+                f.create_dataset("pd_i_cup_j/pd", data=self.pd_i_cup_j.pd)
+            if self.threading.flags is not None or self.threading.pd is not None:
+                f.create_group("threading")
+                if self.threading.flags is not None:
+                    f.create_dataset("threading/flags", data=self.threading.flags)
+                if self.threading.pd is not None:
+                    f.create_dataset("threading/pd", data=self.threading.pd)
+            f.create_group("Metadata")
+            for key, value in self.metadata.items():
+                if value is None:
+                    value = "None"
+                f["Metadata"].attrs[key] = value
+
+    def from_hdf5(self, filename):
+        """
+        Load the persistence diagrams from a HDF5 file.
+        """
+        with h5py.File(filename, "r") as f:
+            if "pd_i" in f:
+                self.pd_i.pd = f["pd_i/pd"][:]
+            if "pd_i_cup_j" in f:
+                self.pd_i_cup_j.pd = f["pd_i_cup_j/pd"][:]
+            if "threading" in f:
+                self.threading.flags = f["threading/flags"][:]
+                self.threading.pd = f["threading/pd"][:]
+            if "Metadata" in f:
+                meta_grp = f["Metadata"]
+                for key in meta_grp.attrs:
+                    self.metadata[key] = meta_grp.attrs[key]
+                    if self.metadata[key] == "None":
+                        self.metadata[key] = None
 
 
-def test():
-    # Load the coordinates of the ring polymers
-    data = io.LammpsData("../../../tmp/murashima/N100M100.data")
-    # data = io.LammpsData("../../../tmp/murashima/stiff/prod.data")
-    data.polyWrap()
-    coords = np.array(data.atoms.coords)
-    nchains = data.atoms.num_mols
-    nbeads = data.atoms.num_atoms // nchains
-    # (nparticles, 3) -> (nchains, nbeads, 3)
-    coords = coords.reshape(nchains, nbeads, 3)
-    # Compute the bond length of the polymer
-    # bondlengths = calc_bondlength(coords)
-    # print(f"{bondlengths.shape=}")
-    # print(f"{np.max(bondlengths)=}")
+def test(filename):
+    # # Load the coordinates of the ring polymers
+    # data = io.LammpsData(filename)
+    # # data = io.LammpsData("../../../tmp/murashima/stiff/prod.data")
+    # data.polyWrap()
+    # coords = np.array(data.atoms.coords)
+    # nchains = data.atoms.num_mols
+    # nbeads = data.atoms.num_atoms // nchains
+    # # (nparticles, 3) -> (nchains, nbeads, 3)
+    # coords = coords.reshape(nchains, nbeads, 3)
 
-    # Compute the persistence diagram of a single ring polymer
-    print("mp=False")
     time_start = time.time()
     pds = HomologicalThreading()
+    coords = pds.read_lmpdata(filename)
     pds.pd_i.compute(coords, dim=1, mp=False)
-    time_end = time.time()
-    print("Elapsed time for computing pd_i: ", time_end - time_start)
-    time_start = time.time()
-    pds.pd_i_cup_j.compute(coords, dim=1, mp=False)
-    time_end = time.time()
-    print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)
-    time_start = time.time()
-    pds.threading.compute(pds.pd_i.pd, pds.pd_i_cup_j.pd)
-    time_end = time.time()
-    print("Elapsed time for computing threading: ", time_end - time_start)
-    pds.to_hdf5("pd.h5")
-
-    print("\nmp=True")
-    time_start = time.time()
-    pds = HomologicalThreading()
-    pds.pd_i.compute(coords, dim=1, mp=True)
-    time_end = time.time()
-    print("Elapsed time for computing pd_i: ", time_end - time_start)
-    time_start = time.time()
-    pds.pd_i_cup_j.compute(coords, dim=1, mp=True)
-    time_end = time.time()
-    print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)
-    time_start = time.time()
-    pds.threading.compute(pds.pd_i.pd, pds.pd_i_cup_j.pd)
-    time_end = time.time()
-    print("Elapsed time for computing threading: ", time_end - time_start)
-    pds.to_hdf5("pd_mp.h5")
-
-
-def test_kdtree():
-    # Load the coordinates of the ring polymers
-    data = io.LammpsData("../../../tmp/murashima/N100M100.data")
-    # data = io.LammpsData("../../../tmp/murashima/stiff/prod.data")
-    data.polyWrap()
-    coords = np.array(data.atoms.coords)
-    nchains = data.atoms.num_mols
-    nbeads = data.atoms.num_atoms // nchains
-    # (nparticles, 3) -> (nchains, nbeads, 3)
-    coords = coords.reshape(nchains, nbeads, 3)
-
-    time_start = time.time()
-    pds = HomologicalThreading()
-    pds.pd_i.compute(coords, dim=1, mp=True)
     time_end = time.time()
     print("Elapsed time for computing pd_i: ", time_end - time_start)
     time_start = time.time()
@@ -460,5 +509,8 @@ def test_kdtree():
 if __name__ == "__main__":
     import time
 
-    test_kdtree()
-    # test()
+    filename = sys.argv[1]
+    time_start = time.time()
+    test(filename)
+    time_end = time.time()
+    print("Total elapsed time: ", time_end - time_start)

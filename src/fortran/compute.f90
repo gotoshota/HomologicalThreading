@@ -5,20 +5,20 @@ module compute
 
 contains
 
-    subroutine threading(pd_i, pd_i_cup_j, threading_flags, threading_pd)
+    subroutine threading(pd_i, pd_i_cup_j, threading_flags, threading_pd, threshold)
         implicit none
          
         double precision, intent(in) :: pd_i(:, :, :) ! shape: (2, npoints, nchains)
         double precision, intent(in) :: pd_i_cup_j(:, :, :, :) ! shape: (2, npoints2, nchains_a, nchains_p)
         logical, intent(inout) :: threading_flags(:, :) ! shape: (nchains, nchains)
         double precision, intent(inout) :: threading_pd(:, :, :, :) ! shape: (2, npoints, nchains_a, nchains_p)
+        double precision, intent(in) :: threshold
 
         integer :: nchains, npoints, npoints2, i, j, k, l
         integer :: n
         logical, allocatable :: flags(:) ! shape: (npoitns)
         double precision :: diff(2)
         double precision :: target_point(2)
-        double precision, parameter :: threshold = 1d-8
 
         nchains = size(pd_i, 3)
         npoints = size(pd_i, 2)
