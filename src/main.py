@@ -473,7 +473,7 @@ class HomologicalThreading:
                         self.metadata[key] = None
 
 
-def test(filename):
+def test(filename, output):
     # # Load the coordinates of the ring polymers
     # data = io.LammpsData(filename)
     # # data = io.LammpsData("../../../tmp/murashima/stiff/prod.data")
@@ -498,7 +498,7 @@ def test(filename):
     pds.threading.compute(pds.pd_i.pd, pds.pd_i_cup_j.pd)
     time_end = time.time()
     print("Elapsed time for computing threading: ", time_end - time_start)
-    pds.to_hdf5("pd.h5")
+    pds.to_hdf5(output)
 
     # time_start = time.time()
     # pds.threading.compute_kdtree(pds.pd_i.pd, pds.pd_i_cup_j.pd)
@@ -511,7 +511,8 @@ if __name__ == "__main__":
     import time
 
     filename = sys.argv[1]
+    output = sys.argv[2]
     time_start = time.time()
-    test(filename)
+    test(filename, output)
     time_end = time.time()
     print("Total elapsed time: ", time_end - time_start)
