@@ -474,16 +474,6 @@ class HomologicalThreading:
 
 
 def test(filename, output):
-    # # Load the coordinates of the ring polymers
-    # data = io.LammpsData(filename)
-    # # data = io.LammpsData("../../../tmp/murashima/stiff/prod.data")
-    # data.polyWrap()
-    # coords = np.array(data.atoms.coords)
-    # nchains = data.atoms.num_mols
-    # nbeads = data.atoms.num_atoms // nchains
-    # # (nparticles, 3) -> (nchains, nbeads, 3)
-    # coords = coords.reshape(nchains, nbeads, 3)
-
     time_start = time.time()
     pds = HomologicalThreading()
     coords = pds.read_lmpdata(filename)
@@ -499,12 +489,6 @@ def test(filename, output):
     time_end = time.time()
     print("Elapsed time for computing threading: ", time_end - time_start)
     pds.to_hdf5(output)
-
-    # time_start = time.time()
-    # pds.threading.compute_kdtree(pds.pd_i.pd, pds.pd_i_cup_j.pd)
-    # time_end = time.time()
-    # print("Elapsed time for computing threading using KDTree: ", time_end - time_start)
-    # pds.to_hdf5("pd_kdtree.h5")
 
 
 if __name__ == "__main__":
