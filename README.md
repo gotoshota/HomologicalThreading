@@ -13,7 +13,7 @@ pip install uv
 
 - Fortran compiler (gfortran など)
 
-ifx などの Fortran コンパイラが必要です.
+gfortran, ifx などの Fortran コンパイラが必要です.
 デフォルトでは gfortran をMakefileで指定していますが，必要に応じて変更してください．
 
 - CGAL 
