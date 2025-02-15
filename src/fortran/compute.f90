@@ -76,4 +76,31 @@ contains
         !$omp end parallel do
 
     end subroutine threading
+
+    subroutine betti_number(pd, d_alpha, n_alpha, betti)
+        implicit none
+
+        double precision, intent(in) :: pd(:, :) ! shape: (2, npoints)
+        double precision, intent(in) :: d_alpha
+        integer, intent(in) :: n_alpha
+        integer(kind=8), dimension(n_alpha), intent(out) :: betti ! return value
+
+        integer :: npoints, i, j
+        double precision :: alpha
+
+        npoints = size(pd, 2)
+        betti = 0   
+        !$omp parallel do private(i, j, alpha) shared(pd, betti)
+        do i = 1, n_alpha
+            alpha = d_alpha * (i - 1)
+            betti(i) = 0
+            do j = 1, npoints
+                ! 既に生まれていて， まだ死んでない点の数を数える
+                if (pd(1, j) < alpha .and. pd(2, j) >= alpha) then
+                    betti(i) = betti(i) + 1
+                end if
+            end do
+        end do
+        !$omp end parallel do
+    end subroutine betti_number
 end module compute

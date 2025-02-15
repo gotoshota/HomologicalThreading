@@ -1,9 +1,9 @@
-import lammps_io as io  # my code
+import lammps_io as io
+from fortran import compute as fc
 import homcloud.interface as hc
 import numpy as np
 import h5py
 import multiprocessing as mp
-import fortran.compute as fc
 import os
 import sys
 import time
@@ -473,6 +473,30 @@ class HomologicalThreading:
                         self.metadata[key] = None
 
 
+def compute_betti_number(pd, d_alpha=0.01):
+    """
+    Compute the Betti number from the persistence diagram.
+
+    args:
+    pd: np.array, shape=(npoints, 2)
+
+    return:
+    betti_numbers: np.array, shape=(n_alpha)
+    """
+    # fortran 用に配列を変換
+    pd_fort = pd.T
+    pd_fort = np.asfortranarray(pd_fort)
+
+    # nan を除去
+    tmp = pd[~np.isnan(pd).any(axis=1)]
+    max_death = np.max(tmp[:, 1])
+    print(max_death)
+    n_alpha = int(max_death / d_alpha) + 1
+    betti_number = fc.betti_number(pd_fort, d_alpha, n_alpha)
+    alphas = np.arange(0, n_alpha * d_alpha, d_alpha)
+    return alphas, betti_number
+
+
 def test(filename, output):
     time_start = time.time()
     pds = HomologicalThreading()
@@ -489,6 +513,16 @@ def test(filename, output):
     time_end = time.time()
     print("Elapsed time for computing threading: ", time_end - time_start)
     pds.to_hdf5(output)
+    betti_numbers = []
+    all_pds = pds.pd_i.pd
+    # reshape: (nchains, npoints, 2) -> (nchains * npoints, 2)
+    nchains = all_pds.shape[0]
+    all_pds = all_pds.reshape(-1, 2)
+    alphas, betti_number = compute_betti_number(all_pds)
+    import matplotlib.pyplot as plt
+    figs, ax = plt.subplots()
+    ax.plot(alphas, betti_number/nchains)
+    plt.show()
 
 
 if __name__ == "__main__":
