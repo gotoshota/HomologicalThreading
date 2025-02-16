@@ -36,8 +36,10 @@ def calc_ensemble_betti_numbers(pds, normalization=1.0):
     alpha, betti_number = ht.compute_betti_number(pds)
     return alpha, betti_number / normalization
 
+
 def plot_betti_numbers(alphas, betti_numbers):
     import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots()
     ax.plot(alphas, betti_numbers)
     ax.set_xlabel(r"$\alpha$")
@@ -45,13 +47,11 @@ def plot_betti_numbers(alphas, betti_numbers):
     plt.show()
 
 
-
-
 def main():
     args = get_args()
     print(args.input)
     elapsed_times = [[], [], []]  # pd_i, pd_i_cup_j, threading
-    all_pds = [[], [], []] # pd_i, pd_i_cup_j, threading: Each shape (npoints, 2)
+    all_pds = [[], [], []]  # pd_i, pd_i_cup_j, threading: Each shape (npoints, 2)
     for filename in args.input:
         # /path/to/xxx.data -> xxx.h5
         outputFile = pathlib.Path(filename).stem + ".h5"
