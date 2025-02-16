@@ -1,5 +1,5 @@
-import lammps_io as io
-from fortran import compute as fc
+from . import lammps_io as io
+from .fortran import compute as fc
 import homcloud.interface as hc
 import numpy as np
 import h5py
@@ -497,40 +497,5 @@ def compute_betti_number(pd, d_alpha=0.01):
     return alphas, betti_number
 
 
-def test(filename, output):
-    time_start = time.time()
-    pds = HomologicalThreading()
-    coords = pds.read_lmpdata(filename)
-    pds.pd_i.compute(coords, dim=1, mp=False)
-    time_end = time.time()
-    print("Elapsed time for computing pd_i: ", time_end - time_start)
-    time_start = time.time()
-    pds.pd_i_cup_j.compute(coords, dim=1, mp=True)
-    time_end = time.time()
-    print("Elapsed time for computing pd_i_cup_j: ", time_end - time_start)
-    time_start = time.time()
-    pds.threading.compute(pds.pd_i.pd, pds.pd_i_cup_j.pd)
-    time_end = time.time()
-    print("Elapsed time for computing threading: ", time_end - time_start)
-    pds.to_hdf5(output)
-    betti_numbers = []
-    all_pds = pds.pd_i.pd
-    # reshape: (nchains, npoints, 2) -> (nchains * npoints, 2)
-    nchains = all_pds.shape[0]
-    all_pds = all_pds.reshape(-1, 2)
-    alphas, betti_number = compute_betti_number(all_pds)
-    import matplotlib.pyplot as plt
-    figs, ax = plt.subplots()
-    ax.plot(alphas, betti_number/nchains)
-    plt.show()
-
-
 if __name__ == "__main__":
-    import time
-
-    filename = sys.argv[1]
-    output = sys.argv[2]
-    time_start = time.time()
-    test(filename, output)
-    time_end = time.time()
-    print("Total elapsed time: ", time_end - time_start)
+    pass

@@ -408,7 +408,7 @@ class LammpsData:
 
 # 動作確認用（必要に応じてパスを適宜変更してください）
 if __name__ == "__main__":
-    data = LammpsData("../../../tmp/murashima/N100M100.data")
+    data = LammpsData("../../data/N10M100.data")
     # Test box
     print(f"{data.box.x=}")
     print(f"{data.box.y=}")
