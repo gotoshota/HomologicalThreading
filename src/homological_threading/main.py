@@ -490,7 +490,6 @@ def compute_betti_number(pd, d_alpha=0.01):
     # nan を除去
     tmp = pd[~np.isnan(pd).any(axis=1)]
     max_death = np.max(tmp[:, 1])
-    print(max_death)
     n_alpha = int(max_death / d_alpha) + 1
     betti_number = fc.betti_number(pd_fort, d_alpha, n_alpha)
     alphas = np.arange(0, n_alpha * d_alpha, d_alpha)
