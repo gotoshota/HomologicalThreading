@@ -57,10 +57,6 @@ def main():
         outputFile = pathlib.Path(filename).stem + ".h5"
         output_path = pathlib.Path(args.outputdir) / outputFile
 
-        # debug
-        pds = ht.HomologicalThreading()
-        pds.from_hdf5(output_path)
-
         pds = ht.HomologicalThreading()
         coords = pds.read_lmpdata(filename)
         time_start = time.time()
