@@ -247,24 +247,36 @@ class LammpsData:
         # 被ってない，mol_id の数を数える
         self.atoms.num_mols = len(set(self.atoms.mol_id))
         # Atom, Bond セクションのデータを sort
-        self.atoms.id, self.atoms.mol_id, self.atoms.type, self.atoms.coords, self.atoms.image_flag = map(list, zip(
-            *sorted(
-                zip(
-                    self.atoms.id,
-                    self.atoms.mol_id,
-                    self.atoms.type,
-                    self.atoms.coords,
-                    self.atoms.image_flag,
-                ),
-                key=lambda x: x[0],
-            )
-        ))
-        self.bonds.id, self.bonds.type, self.bonds.atoms = map(list, zip(
-            *sorted(
-                zip(self.bonds.id, self.bonds.type, self.bonds.atoms),
-                key=lambda x: x[0],
-            )
-        ))
+        (
+            self.atoms.id,
+            self.atoms.mol_id,
+            self.atoms.type,
+            self.atoms.coords,
+            self.atoms.image_flag,
+        ) = map(
+            list,
+            zip(
+                *sorted(
+                    zip(
+                        self.atoms.id,
+                        self.atoms.mol_id,
+                        self.atoms.type,
+                        self.atoms.coords,
+                        self.atoms.image_flag,
+                    ),
+                    key=lambda x: x[0],
+                )
+            ),
+        )
+        self.bonds.id, self.bonds.type, self.bonds.atoms = map(
+            list,
+            zip(
+                *sorted(
+                    zip(self.bonds.id, self.bonds.type, self.bonds.atoms),
+                    key=lambda x: x[0],
+                )
+            ),
+        )
 
     def write(self, filename):
         """
@@ -325,8 +337,7 @@ class LammpsData:
         # 分子IDは 1 から始まる
         for i in range(1, self.atoms.num_mols + 1):
             # 分子IDが i の原子のインデックスを取得
-            idx = [j for j, mol_id in enumerate(
-                self.atoms.mol_id) if mol_id == i]
+            idx = [j for j, mol_id in enumerate(self.atoms.mol_id) if mol_id == i]
             if not idx:
                 continue
 
