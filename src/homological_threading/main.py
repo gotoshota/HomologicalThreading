@@ -178,6 +178,25 @@ class HomologicalThreading:
                 partial_pd_list.append((i, pd_chain))
             return partial_pd_list
 
+        def betti(self, max_alpha=None, d_alpha=0.2):
+            """
+            Compute the Betti number from the persistence diagram.
+            The range of alpha is [0, max_alpha].
+
+            args:
+                max_alpha: float, maximum alpha value
+                d_alpha: float, alpha step size
+
+            return:
+                betti_numbers: np.array, shape=(n_alpha)
+            """
+            nchains = self.pd.shape[0]
+            pd_vectlized = self.pd.reshape(-1, 2)
+            alphas, betti_number = compute_betti_number(
+                pd_vectlized, max_alpha, d_alpha
+            )
+            return alphas, betti_number
+
     class PD_i_cup_j:
         """
         Class for storing the persistence diagram of the cup product of two ring polymers.
@@ -324,6 +343,25 @@ class HomologicalThreading:
                 partial_pd_list.append((i, pd_list_chain))
             return partial_pd_list
 
+        def betti(self, max_alpha=None, d_alpha=0.2):
+            """
+            Compute the Betti number from the persistence diagram.
+            The range of alpha is [0, max_alpha].
+
+            args:
+                max_alpha: float, maximum alpha value
+                d_alpha: float, alpha step size
+
+            return:
+                betti_numbers: np.array, shape=(n_alpha)
+            """
+            nchains = self.pd.shape[0]
+            pd_vectlized = self.pd.reshape(-1, 2)
+            alphas, betti_number = compute_betti_number(
+                pd_vectlized, max_alpha, d_alpha
+            )
+            return alphas, betti_number
+
     class Threading:
         """
         Class for storing the homological threading of ring polymers.
@@ -430,6 +468,25 @@ class HomologicalThreading:
 
             return C
 
+        def betti(self, max_alpha=None, d_alpha=0.2):
+            """
+            Compute the Betti number from the persistence diagram.
+            The range of alpha is [0, max_alpha].
+
+            args:
+                max_alpha: float, maximum alpha value
+                d_alpha: float, alpha step size
+
+            return:
+                betti_numbers: np.array, shape=(n_alpha)
+            """
+            nchains = self.pd.shape[0]
+            pd_vectlized = self.pd.reshape(-1, 2)
+            alphas, betti_number = compute_betti_number(
+                pd_vectlized, max_alpha, d_alpha
+            )
+            return alphas, betti_number
+
     def to_hdf5(self, filename):
         """
         Save the persistence diagrams to a HDF5 file.
@@ -473,15 +530,18 @@ class HomologicalThreading:
                         self.metadata[key] = None
 
 
-def compute_betti_number(pd, d_alpha=0.01):
+def compute_betti_number(pd, max_alpha=None, d_alpha=0.2):
     """
     Compute the Betti number from the persistence diagram.
+    The range of alpha is [0, max_alpha].
 
     args:
-    pd: np.array, shape=(npoints, 2)
+        pd: np.array, shape=(npoints, 2)
+        max_alpha: float, maximum alpha value
+        d_alpha: float, alpha step size
 
     return:
-    betti_numbers: np.array, shape=(n_alpha)
+        betti_numbers: np.array, shape=(n_alpha)
     """
     # fortran 用に配列を変換
     pd_fort = pd.T
@@ -489,8 +549,9 @@ def compute_betti_number(pd, d_alpha=0.01):
 
     # nan を除去
     tmp = pd[~np.isnan(pd).any(axis=1)]
-    max_death = np.max(tmp[:, 1])
-    n_alpha = int(max_death / d_alpha) + 1
+    if max_alpha is None:
+        max_alpha = np.max(tmp[:, 1])
+    n_alpha = int(max_alpha / d_alpha) + 1
     betti_number = fc.betti_number(pd_fort, d_alpha, n_alpha)
     alphas = np.arange(0, n_alpha * d_alpha, d_alpha)
     return alphas, betti_number
