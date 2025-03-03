@@ -483,7 +483,7 @@ class HomologicalThreading:
             nchains = self.pd.shape[0]
             pd_vectlized = self.pd.reshape(-1, 2)
             alphas, betti_number = compute_betti_number(
-                pd_vectlized, max_alpha, d_alpha
+                pd_vectlized, max_alpha, d_alpha, is_threading=True
             )
             return alphas, betti_number
 
@@ -530,7 +530,7 @@ class HomologicalThreading:
                         self.metadata[key] = None
 
 
-def compute_betti_number(pd, max_alpha=None, d_alpha=0.2):
+def compute_betti_number(pd, max_alpha=None, d_alpha=0.2, is_threading=False):
     """
     Compute the Betti number from the persistence diagram.
     The range of alpha is [0, max_alpha].
@@ -552,9 +552,12 @@ def compute_betti_number(pd, max_alpha=None, d_alpha=0.2):
     if max_alpha is None:
         max_alpha = np.max(tmp[:, 1])
     n_alpha = int(max_alpha / d_alpha) + 1
-    betti_number = fc.betti_number(pd_fort, d_alpha, n_alpha)
+    if is_threading:
+        betti_number = fc.betti_number_threading(pd_fort, d_alpha, n_alpha)
+    else:
+        betti_number = fc.betti_number(pd_fort, d_alpha, n_alpha)
     alphas = np.arange(0, n_alpha * d_alpha, d_alpha)
-    return alphas, betti_number
+    return alphas, np.array(betti_number)
 
 
 if __name__ == "__main__":

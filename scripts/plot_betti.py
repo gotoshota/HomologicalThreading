@@ -1,0 +1,38 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import argparse
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filename", nargs="+", type=str, help="filename")
+    return parser.parse_args()
+
+
+def main():
+    args = get_args()
+    num_files = len(args.filename)
+    fig, axes = plt.subplots(num_files, 1)
+    if num_files == 1:
+        axes = [axes]
+    for i, filename in enumerate(args.filename):
+        plot(axes[i], filename)
+    plt.show()
+
+
+def plot(ax, filename):
+    data = np.load(filename)
+    alphas = data["alphas"]
+    betti = data["betti_pd_i"]
+    ax.plot(alphas, betti / 100, label="i")
+    betti = data["betti_pd_i_cup_j"]
+    # ax.plot(alphas, betti / 10000, label="i cup j")
+    # betti = data["betti_threading"]
+    ax.plot(alphas, betti / 10000, label="threading")
+    ax.set_xlim(0.1, 10)
+    ax.set_xscale("log")
+    ax.legend()
+
+
+if __name__ == "__main__":
+    main()

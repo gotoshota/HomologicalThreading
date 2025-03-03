@@ -121,8 +121,8 @@ def _betti(args):
 
 def main():
     args = get_args()
-    _threading(args)
-    # _betti(args)
+    # _threading(args)
+    _betti(args)
 
 
 if __name__ == "__main__":

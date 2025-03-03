@@ -103,4 +103,44 @@ contains
         end do
         !$omp end parallel do
     end subroutine betti_number
+
+    subroutine betti_number_threading(pd, d_alpha, n_alpha, betti)
+        implicit none
+
+        double precision, intent(in) :: pd(:, :, :, :) ! shape: (2, npoints, active, passive)
+        double precision, intent(in) :: d_alpha
+        integer, intent(in) :: n_alpha
+        integer(kind=8), dimension(n_alpha), intent(out) :: betti ! return value
+
+        integer :: nchains, npoints, i, j, k, m
+        double precision :: alpha
+        logical, allocatable :: flags(:) ! shape: (npoitns)
+
+        nchains = size(pd, 3)
+        npoints = size(pd, 2)
+        betti = 0
+        allocate(flags(npoints))
+        !$omp parallel do private(i, j, k, alpha) shared(pd, betti)
+        do i = 1, n_alpha
+            alpha = d_alpha * (i - 1)
+            betti(i) = 0
+            do j = 1, nchains ! passive
+                flags = .true. ! ダブルカウントを防ぐためのフラグ
+                do k = 1, nchains ! active
+                    if (j == k) cycle
+                    do m = 1, npoints
+                        ! 既に生まれていて， まだ死んでない点の数を数える
+                        ! あるループが threading されているかどうか
+                        ! おなじループへの threading はダブルカウントしない
+                        if (pd(1, m, k, j) < alpha .and. pd(2, m, k, j) >= alpha .and. flags(m)) then
+                            betti(i) = betti(i) + 1
+                            flags(m) = .false.
+                        end if
+                    end do
+                end do
+            end do
+        end do
+
+        !$omp end parallel do
+    end subroutine betti_number_threading
 end module compute
