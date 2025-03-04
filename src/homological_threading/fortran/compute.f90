@@ -83,25 +83,29 @@ contains
         double precision, intent(in) :: pd(:, :) ! shape: (2, npoints)
         double precision, intent(in) :: d_alpha
         integer, intent(in) :: n_alpha
-        integer(kind=8), dimension(n_alpha), intent(out) :: betti ! return value
+        double precision, dimension(n_alpha), intent(out) :: betti ! return value
+        integer(kind=8), dimension(n_alpha) :: betti_int
 
         integer :: npoints, i, j
         double precision :: alpha
 
         npoints = size(pd, 2)
         betti = 0   
+        betti_int = 0
         !$omp parallel do private(i, j, alpha) shared(pd, betti)
         do i = 1, n_alpha
             alpha = d_alpha * (i - 1)
-            betti(i) = 0
             do j = 1, npoints
                 ! 既に生まれていて， まだ死んでない点の数を数える
                 if (pd(1, j) < alpha .and. pd(2, j) >= alpha) then
-                    betti(i) = betti(i) + 1
+                    betti_int(i) = betti_int(i) + 1
                 end if
             end do
         end do
         !$omp end parallel do
+        do i = 1, n_alpha
+            betti(i) = dble(betti_int(i))
+        end do
     end subroutine betti_number
 
     subroutine betti_number_threading(pd, d_alpha, n_alpha, betti)
@@ -110,7 +114,10 @@ contains
         double precision, intent(in) :: pd(:, :, :, :) ! shape: (2, npoints, active, passive)
         double precision, intent(in) :: d_alpha
         integer, intent(in) :: n_alpha
-        integer(kind=8), dimension(n_alpha), intent(out) :: betti ! return value
+        double precision, dimension(n_alpha), intent(out) :: betti
+
+        integer(kind=8), dimension(n_alpha) :: betti_int
+
 
         integer :: nchains, npoints, i, j, k, m
         double precision :: alpha
@@ -118,29 +125,41 @@ contains
 
         nchains = size(pd, 3)
         npoints = size(pd, 2)
-        betti = 0
+        print *, nchains, npoints
+        betti_int = 0
+        betti = 0.0d0
+        !$omp parallel private(i, j, k, m, alpha, flags) shared(pd, betti_int)
         allocate(flags(npoints))
-        !$omp parallel do private(i, j, k, alpha) shared(pd, betti)
+        !$omp do
         do i = 1, n_alpha
             alpha = d_alpha * (i - 1)
-            betti(i) = 0
             do j = 1, nchains ! passive
                 flags = .true. ! ダブルカウントを防ぐためのフラグ
                 do k = 1, nchains ! active
                     if (j == k) cycle
                     do m = 1, npoints
-                        ! 既に生まれていて， まだ死んでない点の数を数える
-                        ! あるループが threading されているかどうか
-                        ! おなじループへの threading はダブルカウントしない
-                        if (pd(1, m, k, j) < alpha .and. pd(2, m, k, j) >= alpha .and. flags(m)) then
-                            betti(i) = betti(i) + 1
-                            flags(m) = .false.
+                        if (flags(m)) then
+                            if (pd(1, m, k, j) == -1 .or. pd(2, m, k, j) == -1) then
+                                !flags(m) = .false.
+                                cycle
+                            end if
+                            ! 既に生まれていて， まだ死んでない点の数を数える
+                            ! あるループが threading されているかどうか
+                            ! おなじループへの threading はダブルカウントしない
+                            if (pd(1, m, k, j) <= alpha .and. pd(2, m, k, j) >= alpha) then
+                                betti_int(i) = betti_int(i) + 1
+                                !flags(m) = .false.
+                            end if
                         end if
                     end do
                 end do
             end do
         end do
-
-        !$omp end parallel do
+        !$omp end do
+        deallocate(flags)
+        !$omp end parallel
+        do i = 1, n_alpha
+            betti(i) = dble(betti_int(i)) / dble(nchains)
+        end do
     end subroutine betti_number_threading
 end module compute
