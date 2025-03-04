@@ -138,9 +138,10 @@ contains
                 do k = 1, nchains ! active
                     if (j == k) cycle
                     do m = 1, npoints
+                        !todo: 同じpassiveでも，同じ m が同じループを示さないため，判定基準を2点間の距離に変更
                         if (flags(m)) then
                             if (pd(1, m, k, j) == -1 .or. pd(2, m, k, j) == -1) then
-                                !flags(m) = .false.
+                                flags(m) = .false.
                                 cycle
                             end if
                             ! 既に生まれていて， まだ死んでない点の数を数える
@@ -148,7 +149,7 @@ contains
                             ! おなじループへの threading はダブルカウントしない
                             if (pd(1, m, k, j) <= alpha .and. pd(2, m, k, j) >= alpha) then
                                 betti_int(i) = betti_int(i) + 1
-                                !flags(m) = .false.
+                                flags(m) = .false.
                             end if
                         end if
                     end do
