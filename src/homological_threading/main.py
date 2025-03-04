@@ -191,7 +191,8 @@ class HomologicalThreading:
                 betti_numbers: np.array, shape=(n_alpha)
             """
             nchains = self.pd.shape[0]
-            pd_vectlized = self.pd.reshape(-1, 2)
+            tmp = self.pd[~np.isnan(self.pd).any(axis=2)]
+            pd_vectlized = tmp.reshape(-1, 2)
             alphas, betti_number = compute_betti_number(
                 pd_vectlized, max_alpha, d_alpha
             )
@@ -356,7 +357,8 @@ class HomologicalThreading:
                 betti_numbers: np.array, shape=(n_alpha)
             """
             nchains = self.pd.shape[0]
-            pd_vectlized = self.pd.reshape(-1, 2)
+            tmp = self.pd[~np.isnan(self.pd).any(axis=3)]
+            pd_vectlized = tmp.reshape(-1, 2)
             alphas, betti_number = compute_betti_number(
                 pd_vectlized, max_alpha, d_alpha
             )
@@ -481,9 +483,11 @@ class HomologicalThreading:
                 betti_numbers: np.array, shape=(n_alpha)
             """
             nchains = self.pd.shape[0]
-            pd_vectlized = self.pd.reshape(-1, 2)
+            # nan には意味がないので -1 に変換
+            tmp = self.pd.copy()
+            tmp[np.isnan(tmp)] = -1
             alphas, betti_number = compute_betti_number(
-                pd_vectlized, max_alpha, d_alpha, is_threading=True
+                tmp, max_alpha, d_alpha, is_threading=True
             )
             return alphas, betti_number
 
@@ -548,7 +552,6 @@ def compute_betti_number(pd, max_alpha=None, d_alpha=0.2, is_threading=False):
     pd_fort = np.asfortranarray(pd_fort)
 
     # nan を除去
-    tmp = pd[~np.isnan(pd).any(axis=1)]
     if max_alpha is None:
         max_alpha = np.max(tmp[:, 1])
     n_alpha = int(max_alpha / d_alpha) + 1

@@ -12,8 +12,12 @@ import homological_threading as ht
 
 def get_args():
     parser = argparse.ArgumentParser(description="Homological threading")
-    parser.add_argument("-i", "--input", type=str, nargs="+", help="LAMMPS data file", required=True)
-    parser.add_argument("-o", "--outputdir", type=str, help="Output directory", required=True)
+    parser.add_argument(
+        "-i", "--input", type=str, nargs="+", help="LAMMPS data file", required=True
+    )
+    parser.add_argument(
+        "-o", "--outputdir", type=str, help="Output directory", required=True
+    )
     return parser.parse_args()
 
 
@@ -86,8 +90,9 @@ def _threading(args):
     print("Mean elapsed time for computing pd_i_cup_j: ", np.mean(elapsed_times[1]))
     print("Mean elapsed time for computing threading: ", np.mean(elapsed_times[2]))
 
+
 def _betti(args):
-    outputFile = 'betti.h5'
+    outputFile = "betti.h5"
     output_path = pathlib.Path(args.outputdir) / outputFile
     pds = ht.HomologicalThreading()
     max_alpha = 5000
@@ -107,16 +112,20 @@ def _betti(args):
     betti_pd_i_cup_j = np.array(betti_pd_i_cup_j)
     betti_threading = np.array(betti_threading)
     alphas = np.array(alphas)
+    print(np.amax(betti_threading, axis=1))
+    print(np.amax(betti_pd_i, axis=1))
 
     betti_pd_i_mean = np.mean(betti_pd_i, axis=0)
     betti_pd_i_cup_j_mean = np.mean(betti_pd_i_cup_j, axis=0)
     betti_threading_mean = np.mean(betti_threading, axis=0)
 
-    np.savez(output_path, alphas=alphas, betti_pd_i=betti_pd_i_mean, betti_pd_i_cup_j=betti_pd_i_cup_j_mean, betti_threading=betti_threading_mean)
-
-
-
-
+    np.savez(
+        output_path,
+        alphas=alphas,
+        betti_pd_i=betti_pd_i_mean,
+        betti_pd_i_cup_j=betti_pd_i_cup_j_mean,
+        betti_threading=betti_threading_mean,
+    )
 
 
 def main():

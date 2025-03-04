@@ -24,13 +24,16 @@ def plot(ax, filename):
     data = np.load(filename)
     alphas = data["alphas"]
     betti = data["betti_pd_i"]
-    ax.plot(alphas, betti / 100, label="i")
-    betti = data["betti_pd_i_cup_j"]
+    const = 100
+    ax.plot(alphas, betti / const, label="i")
+    # betti = data["betti_pd_i_cup_j"]
     # ax.plot(alphas, betti / 10000, label="i cup j")
-    # betti = data["betti_threading"]
-    ax.plot(alphas, betti / 10000, label="threading")
-    ax.set_xlim(0.1, 10)
+    betti = data["betti_threading"]
+    const = 100
+    ax.plot(alphas, betti / const, label="threading")
+    ax.set_xlim(0.1, 10000)
     ax.set_xscale("log")
+    # ax.set_yscale("log")
     ax.legend()
 
 
