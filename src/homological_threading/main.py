@@ -193,7 +193,7 @@ class HomologicalThreading:
             nchains = self.pd.shape[0]
             tmp = self.pd.copy()
             tmp = tmp.reshape(-1, 2)
-            tmp = tmp[~np.isnan(tmp).any(axis=1)]
+            # tmp = tmp[~np.isnan(tmp).any(axis=1)]
             alphas, betti_number = compute_betti_number(
                 tmp, max_alpha, d_alpha
             )
@@ -362,7 +362,7 @@ class HomologicalThreading:
             tmp = self.pd[triu_indices]
             tmp = tmp.reshape(-1, 2)
             # nan は 削除する
-            tmp = tmp[~np.isnan(tmp).any(axis=1)]
+            # tmp = tmp[~np.isnan(tmp).any(axis=1)]
             alphas, betti_number = compute_betti_number(
                 tmp, max_alpha, d_alpha
             )
@@ -489,7 +489,7 @@ class HomologicalThreading:
             nchains = self.pd.shape[0]
             # nan → -1 に変換
             tmp = self.pd.copy()
-            tmp[np.isnan(tmp)] = -1
+            # tmp[np.isnan(tmp)] = -1
             alphas, betti_number = compute_betti_number(
                 tmp, max_alpha, d_alpha, is_threading=True
             )

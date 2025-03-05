@@ -121,46 +121,79 @@ contains
 
         integer :: nchains, npoints, i, j, k, m
         double precision :: alpha
-        logical, allocatable :: flags(:) ! shape: (npoitns)
 
         nchains = size(pd, 3)
         npoints = size(pd, 2)
-        print *, nchains, npoints
-        betti_int = 0
-        betti = 0.0d0
-        !$omp parallel private(i, j, k, m, alpha, flags) shared(pd, betti_int)
-        allocate(flags(npoints))
-        !$omp do
-        do i = 1, n_alpha
-            alpha = d_alpha * (i - 1)
-            do j = 1, nchains ! passive
-                flags = .true. ! ダブルカウントを防ぐためのフラグ
-                do k = 1, nchains ! active
-                    if (j == k) cycle
-                    do m = 1, npoints
-                        !todo: 同じpassiveでも，同じ m が同じループを示さないため，判定基準を2点間の距離に変更
-                        if (flags(m)) then
-                            if (pd(1, m, k, j) == -1 .or. pd(2, m, k, j) == -1) then
-                                flags(m) = .false.
-                                cycle
-                            end if
-                            ! 既に生まれていて， まだ死んでない点の数を数える
-                            ! あるループが threading されているかどうか
-                            ! おなじループへの threading はダブルカウントしない
-                            if (pd(1, m, k, j) <= alpha .and. pd(2, m, k, j) >= alpha) then
-                                betti_int(i) = betti_int(i) + 1
-                                flags(m) = .false.
-                            end if
-                        end if
-                    end do
-                end do
-            end do
-        end do
-        !$omp end do
-        deallocate(flags)
-        !$omp end parallel
-        do i = 1, n_alpha
-            betti(i) = dble(betti_int(i)) / dble(nchains)
-        end do
     end subroutine betti_number_threading
+
+    ! 重複した要素を除いた配列を返す
+    subroutine unique_points(pd, threshold, unique_pd)
+        implicit none
+
+        double precision, intent(in) :: pd(:, :) ! shape: (2, npoints)
+        double precision, intent(in) :: threshold
+        double precision, intent(out) :: unique_pd(:,:)
+        integer :: npoints, i, j, k
+        integer :: n_unique
+        logical :: is_duplicate
+
+        npoints = size(pd, 2)
+        allocate(unique_pd(2, npoints))
+
+        n_unique = 0
+        do i = 1, npoints
+            if (ieee_is_nan(pd(1, i)) .or. ieee_is_nan(pd(2, i))) cycle
+            is_duplicate = .false.
+            do j = 1, n_unique
+                if (same_point(pd(:, i), unique_pd(:, j), threshold)) then
+                    is_duplicate = .true.
+                    exit
+                end if
+            end do
+            if (.not. is_duplicate) then
+                n_unique = n_unique + 1
+                unique_pd(:, n_unique) = pd(:, i)
+            end if
+        end do
+
+        if (n_unique < npoints) then
+            call shrink_array(unique_pd, n_unique)
+        end if
+    end subroutine unique_points
+
+    function same_point(p1, p2, threshold)
+        implicit none
+
+        double precision, intent(in) :: p1(:)
+        double precision, intent(in) :: p2(:)
+        double precision, intent(in) :: threshold
+        logical :: same_point
+
+        double precision :: diff(2)
+
+        diff = p1 - p2
+
+        if (diff(1) < threshold .and. diff(2) < threshold) then
+            same_point = .true.
+        else
+            same_point = .false.
+        end if
+    end function same_point
+
+    subroutine shrink_array(array, n_new)
+        implicit none
+
+        double precision, intent(inout) :: array(:,:)
+        integer, intent(in) :: n_new
+        double precision, allocatable :: tmp(:,:)
+
+        allocate(tmp(2, n_new))
+        tmp = array(:, 1:n_new)
+        deallocate(array)
+        allocate(array(2, n_new))
+        array = tmp
+        deallocate(tmp)
+    end subroutine shrink_array
+    
+
 end module compute
