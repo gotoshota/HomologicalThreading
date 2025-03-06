@@ -3,7 +3,7 @@ from .fortran import compute as fc
 import homcloud.interface as hc
 import numpy as np
 import h5py
-import multiprocessing as mp
+import multiprocessing as mp 
 import os
 import sys
 import time
@@ -191,10 +191,11 @@ class HomologicalThreading:
                 betti_numbers: np.array, shape=(n_alpha)
             """
             nchains = self.pd.shape[0]
-            tmp = self.pd[~np.isnan(self.pd).any(axis=2)]
-            pd_vectlized = tmp.reshape(-1, 2)
+            tmp = self.pd.copy()
+            tmp = tmp.reshape(-1, 2)
+            # tmp = tmp[~np.isnan(tmp).any(axis=1)]
             alphas, betti_number = compute_betti_number(
-                pd_vectlized, max_alpha, d_alpha
+                tmp, max_alpha, d_alpha
             )
             return alphas, betti_number
 
@@ -357,10 +358,13 @@ class HomologicalThreading:
                 betti_numbers: np.array, shape=(n_alpha)
             """
             nchains = self.pd.shape[0]
-            tmp = self.pd[~np.isnan(self.pd).any(axis=3)]
-            pd_vectlized = tmp.reshape(-1, 2)
+            triu_indices = np.triu_indices(nchains, k=1)
+            tmp = self.pd[triu_indices]
+            tmp = tmp.reshape(-1, 2)
+            # nan は 削除する
+            # tmp = tmp[~np.isnan(tmp).any(axis=1)]
             alphas, betti_number = compute_betti_number(
-                pd_vectlized, max_alpha, d_alpha
+                tmp, max_alpha, d_alpha
             )
             return alphas, betti_number
 
@@ -483,9 +487,9 @@ class HomologicalThreading:
                 betti_numbers: np.array, shape=(n_alpha)
             """
             nchains = self.pd.shape[0]
-            # nan には意味がないので -1 に変換
+            # nan → -1 に変換
             tmp = self.pd.copy()
-            tmp[np.isnan(tmp)] = -1
+            # tmp[np.isnan(tmp)] = -1
             alphas, betti_number = compute_betti_number(
                 tmp, max_alpha, d_alpha, is_threading=True
             )
@@ -551,7 +555,6 @@ def compute_betti_number(pd, max_alpha=None, d_alpha=0.2, is_threading=False):
     pd_fort = pd.T
     pd_fort = np.asfortranarray(pd_fort)
 
-    # nan を除去
     if max_alpha is None:
         max_alpha = np.max(tmp[:, 1])
     n_alpha = int(max_alpha / d_alpha) + 1
