@@ -1,0 +1,5 @@
+
+<<<<<<< HEAD
+=======
+double precision, pointer, target :: unique_pd(:,:)
+>>>>>>> Snippet

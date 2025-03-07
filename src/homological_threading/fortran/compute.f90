@@ -38,7 +38,7 @@ contains
                 loop_passive_point: do k = 1, npoints 
                     ! NaN なら，それ以降の要素も NaN なので，計算しない
                     if (ieee_is_nan(pd_i(1, k, i)) .or. ieee_is_nan(pd_i(2, k, i))) then
-                        flags(k:) = .false.
+                        flags(k:npoints) = .false.
                         exit loop_passive_point
                     end if
                     target_point = pd_i(:, k, i)
@@ -97,7 +97,7 @@ contains
             alpha = d_alpha * (i - 1)
             do j = 1, npoints
                 ! 既に生まれていて， まだ死んでない点の数を数える
-                if (pd(1, j) < alpha .and. pd(2, j) >= alpha) then
+                if (pd(1, j) <= alpha .and. pd(2, j) >= alpha) then
                     betti_int(i) = betti_int(i) + 1
                 end if
             end do
@@ -108,57 +108,83 @@ contains
         end do
     end subroutine betti_number
 
-    subroutine betti_number_threading(pd, d_alpha, n_alpha, betti)
+    subroutine betti_number_threading(pd, d_alpha, n_alpha, threshold, betti)
         implicit none
 
         double precision, intent(in) :: pd(:, :, :, :) ! shape: (2, npoints, active, passive)
         double precision, intent(in) :: d_alpha
         integer, intent(in) :: n_alpha
+        double precision, intent(in) :: threshold
         double precision, dimension(n_alpha), intent(out) :: betti
 
         integer(kind=8), dimension(n_alpha) :: betti_int
-
+        double precision, allocatable :: unique_pd(:,:)
 
         integer :: nchains, npoints, i, j, k, m
         double precision :: alpha
 
+
         nchains = size(pd, 3)
         npoints = size(pd, 2)
+        npoints = npoints * nchains
+        betti_int = 0
+        !$omp parallel private(i, j, k, alpha, unique_pd) shared(pd, betti, betti_int)
+        allocate(unique_pd(2, npoints))
+        !$omp do
+        do i = 1, n_alpha
+            alpha = d_alpha * (i - 1)
+            do j = 1, nchains ! passive
+                call unique_points(pd(:, :, :, j), threshold, unique_pd)
+                do k = 1, npoints
+                    if (unique_pd(1, k) - 1.0d0 < threshold) cycle
+                    if (unique_pd(1, k) <= alpha .and. unique_pd(2, k) >= alpha) then
+                        betti_int(i) = betti_int(i) + 1
+                    end if
+                end do
+            end do
+            betti(i) = dble(betti_int(i)) / dble(nchains)
+        end do
+        !$omp end do
+        !$omp end parallel 
     end subroutine betti_number_threading
 
     ! 重複した要素を除いた配列を返す
-    subroutine unique_points(pd, threshold, unique_pd)
+    subroutine unique_points(pd, threshold, unique_array)
         implicit none
 
-        double precision, intent(in) :: pd(:, :) ! shape: (2, npoints)
+        double precision, intent(in) :: pd(:, :, :) ! shape: (2, npoints, active)
         double precision, intent(in) :: threshold
-        double precision, intent(out) :: unique_pd(:,:)
+        double precision, intent(out) :: unique_array(:,:)
         integer :: npoints, i, j, k
         integer :: n_unique
+        integer :: nchains
         logical :: is_duplicate
 
         npoints = size(pd, 2)
-        allocate(unique_pd(2, npoints))
+        nchains = size(pd, 3)
 
         n_unique = 0
-        do i = 1, npoints
-            if (ieee_is_nan(pd(1, i)) .or. ieee_is_nan(pd(2, i))) cycle
-            is_duplicate = .false.
-            do j = 1, n_unique
-                if (same_point(pd(:, i), unique_pd(:, j), threshold)) then
-                    is_duplicate = .true.
-                    exit
+        unique_array = -1d0
+        do i = 1, nchains
+            do j = 1, npoints
+                if (pd(1, j, i) - 1.0d0 < threshold) cycle
+                is_duplicate = .false.
+                do k = 1, n_unique
+                    if (same_point(pd(:, j, i), unique_array(:, k), threshold)) then
+                        is_duplicate = .true.
+                        exit
+                    end if
+                end do
+                if (.not. is_duplicate) then
+                    n_unique = n_unique + 1
+                    unique_array(:, n_unique) = pd(:, j, i)
                 end if
             end do
-            if (.not. is_duplicate) then
-                n_unique = n_unique + 1
-                unique_pd(:, n_unique) = pd(:, i)
-            end if
         end do
 
-        if (n_unique < npoints) then
-            call shrink_array(unique_pd, n_unique)
-        end if
+        !if (n_unique < size(unique_array,2)) then
+        !    call shrink_array(unique_array, n_unique)
+        !end if
     end subroutine unique_points
 
     function same_point(p1, p2, threshold)
@@ -173,27 +199,27 @@ contains
 
         diff = p1 - p2
 
-        if (diff(1) < threshold .and. diff(2) < threshold) then
+        if (abs(diff(1)) < threshold .and. abs(diff(2)) < threshold) then
             same_point = .true.
         else
             same_point = .false.
         end if
     end function same_point
 
-    subroutine shrink_array(array, n_new)
-        implicit none
-
-        double precision, intent(inout) :: array(:,:)
-        integer, intent(in) :: n_new
-        double precision, allocatable :: tmp(:,:)
-
-        allocate(tmp(2, n_new))
-        tmp = array(:, 1:n_new)
-        deallocate(array)
-        allocate(array(2, n_new))
-        array = tmp
-        deallocate(tmp)
-    end subroutine shrink_array
+    !subroutine shrink_array(array, n_new)
+    !    implicit none
+    !
+    !    double precision, allocatable, intent(inout) :: array(2,:)
+    !    integer, intent(in) :: n_new
+    !    double precision, allocatable :: tmp(:,:)
+    !
+    !    allocate(tmp(2, n_new))
+    !    tmp = array(:, 1:n_new)
+    !    deallocate(array)
+    !    allocate(array(2, n_new))
+    !    array = tmp
+    !    deallocate(tmp)
+    !end subroutine shrink_array
     
 
 end module compute

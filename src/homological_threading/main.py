@@ -193,7 +193,7 @@ class HomologicalThreading:
             nchains = self.pd.shape[0]
             tmp = self.pd.copy()
             tmp = tmp.reshape(-1, 2)
-            # tmp = tmp[~np.isnan(tmp).any(axis=1)]
+            tmp = tmp[~np.isnan(tmp).any(axis=1)]
             alphas, betti_number = compute_betti_number(
                 tmp, max_alpha, d_alpha
             )
@@ -361,8 +361,7 @@ class HomologicalThreading:
             triu_indices = np.triu_indices(nchains, k=1)
             tmp = self.pd[triu_indices]
             tmp = tmp.reshape(-1, 2)
-            # nan は 削除する
-            # tmp = tmp[~np.isnan(tmp).any(axis=1)]
+            tmp = tmp[~np.isnan(tmp).any(axis=1)]
             alphas, betti_number = compute_betti_number(
                 tmp, max_alpha, d_alpha
             )
@@ -487,9 +486,8 @@ class HomologicalThreading:
                 betti_numbers: np.array, shape=(n_alpha)
             """
             nchains = self.pd.shape[0]
-            # nan → -1 に変換
             tmp = self.pd.copy()
-            # tmp[np.isnan(tmp)] = -1
+            tmp[np.isnan(tmp)] = -1
             alphas, betti_number = compute_betti_number(
                 tmp, max_alpha, d_alpha, is_threading=True
             )
@@ -538,7 +536,7 @@ class HomologicalThreading:
                         self.metadata[key] = None
 
 
-def compute_betti_number(pd, max_alpha=None, d_alpha=0.2, is_threading=False):
+def compute_betti_number(pd, max_alpha=None, d_alpha=0.2, is_threading=False, threshold=1e-10):
     """
     Compute the Betti number from the persistence diagram.
     The range of alpha is [0, max_alpha].
@@ -559,7 +557,7 @@ def compute_betti_number(pd, max_alpha=None, d_alpha=0.2, is_threading=False):
         max_alpha = np.max(tmp[:, 1])
     n_alpha = int(max_alpha / d_alpha) + 1
     if is_threading:
-        betti_number = fc.betti_number_threading(pd_fort, d_alpha, n_alpha)
+        betti_number = fc.betti_number_threading(pd_fort, d_alpha, n_alpha, threshold)
     else:
         betti_number = fc.betti_number(pd_fort, d_alpha, n_alpha)
     alphas = np.arange(0, n_alpha * d_alpha, d_alpha)

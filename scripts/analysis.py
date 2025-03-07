@@ -112,8 +112,6 @@ def _betti(args):
     betti_pd_i_cup_j = np.array(betti_pd_i_cup_j)
     betti_threading = np.array(betti_threading)
     alphas = np.array(alphas)
-    print(np.amax(betti_threading, axis=1))
-    print(np.amax(betti_pd_i, axis=1))
 
     betti_pd_i_mean = np.mean(betti_pd_i, axis=0)
     betti_pd_i_cup_j_mean = np.mean(betti_pd_i_cup_j, axis=0)
