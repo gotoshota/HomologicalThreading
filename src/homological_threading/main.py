@@ -402,7 +402,7 @@ class HomologicalThreading:
             pd_i_cup_j_fort = np.asfortranarray(pd_i_cup_j.T)
 
             # flags_fort: (active, passive)
-            flags_fort = np.ones((nchains, nchains), dtype=np.int32)
+            flags_fort = np.zeros((nchains, nchains), dtype=np.int32)
             flags_fort = np.asfortranarray(flags_fort)
 
             # Fortran で homological threading を計算
@@ -489,7 +489,7 @@ class HomologicalThreading:
             tmp = self.pd.copy()
             tmp[np.isnan(tmp)] = -1
             alphas, betti_number = compute_betti_number(
-                tmp, max_alpha, d_alpha, is_threading=True
+                tmp, max_alpha, d_alpha, is_threading=True, threshold=1e-10
             )
             return alphas, betti_number
 

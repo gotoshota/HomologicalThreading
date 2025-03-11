@@ -167,7 +167,7 @@ contains
         unique_array = -1d0
         do i = 1, nchains
             do j = 1, npoints
-                if (pd(1, j, i) - 1.0d0 < threshold) cycle
+                if (pd(1, j, i) < 0.0d0) cycle
                 is_duplicate = .false.
                 do k = 1, n_unique
                     if (same_point(pd(:, j, i), unique_array(:, k), threshold)) then
@@ -195,11 +195,11 @@ contains
         double precision, intent(in) :: threshold
         logical :: same_point
 
-        double precision :: diff(2)
+        double precision :: disp
 
-        diff = p1 - p2
+        disp = sqrt(sum((p1 - p2)**2))
 
-        if (abs(diff(1)) < threshold .and. abs(diff(2)) < threshold) then
+        if (disp < threshold) then
             same_point = .true.
         else
             same_point = .false.

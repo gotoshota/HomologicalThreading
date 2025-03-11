@@ -29,7 +29,7 @@ def plot(ax, filename):
     # betti = data["betti_pd_i_cup_j"]
     # ax.plot(alphas, betti / 10000, label="i cup j")
     betti = data["betti_threading"]
-    const = 100.0
+    const = 1.0
     print (betti[10:30] / const)
     ax.plot(np.sqrt(alphas), betti / const, label="threading")
 
