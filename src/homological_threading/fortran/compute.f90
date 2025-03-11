@@ -122,6 +122,7 @@ contains
 
         integer :: nchains, npoints, i, j, k, m
         integer :: total_points
+        integer :: n_unique
         double precision :: alpha
 
 
@@ -130,14 +131,15 @@ contains
         total_points = nchains * npoints
         betti = 0
         betti_int = 0
-        !$omp parallel private(i, j, k, alpha, unique_pd) shared(pd, betti, betti_int, threshold)
+        !$omp parallel private(i, j, k, alpha, unique_pd, n_unique) shared(pd, betti, betti_int, threshold)
         allocate(unique_pd(2, total_points))
         !$omp do
         do i = 1, n_alpha
             alpha = d_alpha * (i - 1)
             do j = 1, nchains ! passive
                 call unique_points(pd(:, :, :, j), threshold, unique_pd)
-                do k = 1, npoints
+                n_unique = size(unique_pd, 2)
+                do k = 1, n_unique
                     if (unique_pd(1, k) < 0.0d0) cycle
                     if (unique_pd(1, k) <= alpha .and. unique_pd(2, k) >= alpha) then
                         betti_int(i) = betti_int(i) + 1
