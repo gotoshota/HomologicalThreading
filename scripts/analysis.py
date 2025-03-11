@@ -12,14 +12,19 @@ import homological_threading as ht
 
 def get_args():
     parser = argparse.ArgumentParser(description="Homological threading")
-    parser.add_argument(
-        "-i", "--input", type=str, nargs="+", help="LAMMPS data file", required=True
-    )
-    parser.add_argument(
-        "-o", "--outputdir", type=str, help="Output directory", required=True
-    )
-    return parser.parse_args()
+    subparsers = parser.add_subparsers(dest="command", help="Command to execute")
+    
+    # PD command
+    pd_parser = subparsers.add_parser("pd", help="Compute persistence diagrams")
+    pd_parser.add_argument("-i", "--input", nargs="+", help="Input LAMMPS DATA files")
+    pd_parser.add_argument("-o", "--outputdir", default=".", help="Output directory")
 
+    # Betti command
+    betti_parser = subparsers.add_parser("betti", help="Compute Betti numbers")
+    betti_parser.add_argument("-i", "--input", nargs="+", help="Input HDF5 files")
+    betti_parser.add_argument("-o", "--outputdir", default=".", help="Output directory")
+
+    return parser.parse_args()
 
 def calc_ensemble_betti_numbers(pds, normalization=1.0):
     """
@@ -128,8 +133,10 @@ def _betti(args):
 
 def main():
     args = get_args()
-    # _threading(args)
-    _betti(args)
+    if args.command == "pd":
+        _threading(args)
+    elif args.command == "betti":
+        _betti(args)
 
 
 if __name__ == "__main__":

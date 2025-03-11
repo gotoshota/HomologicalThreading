@@ -25,16 +25,16 @@ def plot(ax, filename):
     alphas = data["alphas"]
     betti = data["betti_pd_i"]
     const = 100.0
-    ax.plot(alphas, np.array(betti, dtype=np.float32) / const, label="i")
+    ax.plot(np.sqrt(alphas), np.array(betti, dtype=np.float32) / const, label="i")
     # betti = data["betti_pd_i_cup_j"]
     # ax.plot(alphas, betti / 10000, label="i cup j")
     betti = data["betti_threading"]
-    const = 1.0
+    const = 100.0
     print (betti[10:30] / const)
-    ax.plot(alphas, betti / const, label="threading")
+    ax.plot(np.sqrt(alphas), betti / const, label="threading")
 
-    # ax.set_xlim(0.1, 5000)
-    ax.set_xscale("log")
+    ax.set_xlim(0, 10)
+    # ax.set_xscale("log")
     # ax.set_yscale("log")
     ax.legend()
 
