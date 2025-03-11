@@ -76,7 +76,6 @@ contains
         !$omp end parallel do
 
     end subroutine threading
-
     subroutine betti_number(pd, d_alpha, n_alpha, betti)
         implicit none
 
@@ -96,6 +95,8 @@ contains
         do i = 1, n_alpha
             alpha = d_alpha * (i - 1)
             do j = 1, npoints
+                ! Skip NaN values
+                if (ieee_is_nan(pd(1, j)) .or. ieee_is_nan(pd(2, j))) cycle
                 ! 既に生まれていて， まだ死んでない点の数を数える
                 if (pd(1, j) <= alpha .and. pd(2, j) >= alpha) then
                     betti_int(i) = betti_int(i) + 1
@@ -120,32 +121,49 @@ contains
         integer(kind=8), dimension(n_alpha) :: betti_int
         double precision, allocatable :: unique_pd(:,:)
 
-        integer :: nchains, npoints, i, j, k, m
+        integer :: nchains, npoints, i, j, k, m, total_points
         double precision :: alpha
 
 
         nchains = size(pd, 3)
         npoints = size(pd, 2)
-        npoints = npoints * nchains
+        total_points = npoints * nchains * nchains ! Maximum possible number of points
+        
+        betti = 0.0d0
         betti_int = 0
-        !$omp parallel private(i, j, k, alpha, unique_pd) shared(pd, betti, betti_int)
-        allocate(unique_pd(2, npoints))
-        !$omp do
+        
+        ! First, collect all threading points across all chains
+        allocate(unique_pd(2, total_points))
+        unique_pd = -1.0d0
+        
+        ! Process each passive chain
+        do j = 1, nchains
+            ! Get unique points for this passive chain across all active chains
+            call unique_points(pd(:, :, :, j), threshold, unique_pd)
+        end do
+        
+        ! Now count Betti numbers using the unique points
         do i = 1, n_alpha
             alpha = d_alpha * (i - 1)
-            do j = 1, nchains ! passive
-                call unique_points(pd(:, :, :, j), threshold, unique_pd)
-                do k = 1, npoints
-                    if (unique_pd(1, k) - 1.0d0 < threshold) cycle
-                    if (unique_pd(1, k) <= alpha .and. unique_pd(2, k) >= alpha) then
-                        betti_int(i) = betti_int(i) + 1
-                    end if
-                end do
+            do k = 1, total_points
+                ! Skip invalid points (either -1 or NaN)
+                if (unique_pd(1, k) < 0.0d0) cycle
+                if (ieee_is_nan(unique_pd(1, k)) .or. ieee_is_nan(unique_pd(2, k))) cycle
+                
+                ! Count points that are alive at alpha
+                if (unique_pd(1, k) <= alpha .and. unique_pd(2, k) >= alpha) then
+                    betti_int(i) = betti_int(i) + 1
+                end if
             end do
-            betti(i) = dble(betti_int(i)) / dble(nchains)
+
         end do
-        !$omp end do
-        !$omp end parallel 
+        
+        ! Convert to double precision
+        do i = 1, n_alpha
+            betti(i) = dble(betti_int(i))
+        end do
+        
+        deallocate(unique_pd)
     end subroutine betti_number_threading
 
     ! 重複した要素を除いた配列を返す
@@ -154,7 +172,7 @@ contains
 
         double precision, intent(in) :: pd(:, :, :) ! shape: (2, npoints, active)
         double precision, intent(in) :: threshold
-        double precision, intent(out) :: unique_array(:,:)
+        double precision, intent(inout) :: unique_array(:,:)
         integer :: npoints, i, j, k
         integer :: n_unique
         integer :: nchains
@@ -163,11 +181,21 @@ contains
         npoints = size(pd, 2)
         nchains = size(pd, 3)
 
+        ! Find the current number of unique points in the array
         n_unique = 0
-        unique_array = -1d0
+        do k = 1, size(unique_array, 2)
+            if (unique_array(1, k) < 0.0d0) exit
+            n_unique = k
+        end do
+
+        ! Add new unique points
         do i = 1, nchains
             do j = 1, npoints
-                if (pd(1, j, i) - 1.0d0 < threshold) cycle
+                ! Skip invalid points (either -1, NaN, or birth time too small)
+                if (pd(1, j, i) < 0.0d0) cycle
+                if (ieee_is_nan(pd(1, j, i)) .or. ieee_is_nan(pd(2, j, i))) cycle
+                
+                ! Check if this point is a duplicate of any existing point
                 is_duplicate = .false.
                 do k = 1, n_unique
                     if (same_point(pd(:, j, i), unique_array(:, k), threshold)) then
@@ -175,16 +203,19 @@ contains
                         exit
                     end if
                 end do
+                
+                ! If not a duplicate, add to unique array
                 if (.not. is_duplicate) then
                     n_unique = n_unique + 1
-                    unique_array(:, n_unique) = pd(:, j, i)
+                    if (n_unique <= size(unique_array, 2)) then
+                        unique_array(:, n_unique) = pd(:, j, i)
+                    else
+                        ! Array is full, can't add more points
+                        exit
+                    end if
                 end if
             end do
         end do
-
-        !if (n_unique < size(unique_array,2)) then
-        !    call shrink_array(unique_array, n_unique)
-        !end if
     end subroutine unique_points
 
     function same_point(p1, p2, threshold)
@@ -196,10 +227,12 @@ contains
         logical :: same_point
 
         double precision :: diff(2)
+        double precision :: dist
 
         diff = p1 - p2
+        dist = sqrt(diff(1)**2 + diff(2)**2)
 
-        if (abs(diff(1)) < threshold .and. abs(diff(2)) < threshold) then
+        if (dist < threshold) then
             same_point = .true.
         else
             same_point = .false.

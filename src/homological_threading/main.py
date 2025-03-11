@@ -402,7 +402,7 @@ class HomologicalThreading:
             pd_i_cup_j_fort = np.asfortranarray(pd_i_cup_j.T)
 
             # flags_fort: (active, passive)
-            flags_fort = np.ones((nchains, nchains), dtype=np.int32)
+            flags_fort = np.zeros((nchains, nchains), dtype=np.int32)
             flags_fort = np.asfortranarray(flags_fort)
 
             # Fortran で homological threading を計算
@@ -489,7 +489,7 @@ class HomologicalThreading:
             tmp = self.pd.copy()
             tmp[np.isnan(tmp)] = -1
             alphas, betti_number = compute_betti_number(
-                tmp, max_alpha, d_alpha, is_threading=True
+                tmp, max_alpha, d_alpha, is_threading=True, threshold=1e-3
             )
             return alphas, betti_number
 
@@ -554,8 +554,20 @@ def compute_betti_number(pd, max_alpha=None, d_alpha=0.2, is_threading=False, th
     pd_fort = np.asfortranarray(pd_fort)
 
     if max_alpha is None:
-        max_alpha = np.max(tmp[:, 1])
+        # Filter out NaN values before computing max
+        valid_pd = pd[~np.isnan(pd).any(axis=1)]
+        if valid_pd.size > 0:
+            max_alpha = np.max(valid_pd[:, 1])
+        else:
+            max_alpha = 1.0  # Default value if no valid points
+    
     n_alpha = int(max_alpha / d_alpha) + 1
+    if is_threading:
+        betti_number = fc.betti_number_threading(pd_fort, d_alpha, n_alpha, threshold)
+    else:
+        betti_number = fc.betti_number(pd_fort, d_alpha, n_alpha)
+    alphas = np.arange(0, n_alpha * d_alpha, d_alpha)
+    return alphas, np.array(betti_number)
     if is_threading:
         betti_number = fc.betti_number_threading(pd_fort, d_alpha, n_alpha, threshold)
     else:
