@@ -70,21 +70,18 @@ def _threading(args):
         coords = pds.read_lmpdata(filename)
         time_start = time.time()
         pds.pd_i.compute(coords, dim=1, mp=False)
-        betti = pds.pd_i.betti(max_alpha, delta_alpha)
         time_end = time.time()
         elapsed_times[0].append(time_end - time_start)
 
         # Pair of chains
         time_start = time.time()
         pds.pd_i_cup_j.compute(coords, dim=1, mp=True)
-        betti = pds.pd_i_cup_j.betti(max_alpha, delta_alpha)
         time_end = time.time()
         elapsed_times[1].append(time_end - time_start)
 
         # Threading
         time_start = time.time()
         pds.threading.compute(pds.pd_i.pd, pds.pd_i_cup_j.pd)
-        betti = pds.threading.betti(max_alpha, delta_alpha)
         time_end = time.time()
         elapsed_times[2].append(time_end - time_start)
 
@@ -102,32 +99,27 @@ def _betti(args):
     pds = ht.HomologicalThreading()
     max_alpha = 5000
     delta_alpha = 0.1
-    betti_pd_i = []
-    betti_pd_i_cup_j = []
-    betti_threading = []
+    betti_pd_i = np.zeros(int(max_alpha / delta_alpha + 1))
+    betti_pd_i_cup_j = np.zeros(int(max_alpha / delta_alpha + 1))
+    betti_threading = np.zeros(int(max_alpha / delta_alpha + 1))
     for filename in args.input:
         pds.from_hdf5(filename)
         alphas, betti = pds.pd_i.betti(max_alpha, delta_alpha)
-        betti_pd_i.append(betti)
+        betti_pd_i += betti
         alphas, betti = pds.pd_i_cup_j.betti(max_alpha, delta_alpha)
-        betti_pd_i_cup_j.append(betti)
+        betti_pd_i_cup_j += betti
         alphas, betti = pds.threading.betti(max_alpha, delta_alpha)
-        betti_threading.append(betti)
-    betti_pd_i = np.array(betti_pd_i)
-    betti_pd_i_cup_j = np.array(betti_pd_i_cup_j)
-    betti_threading = np.array(betti_threading)
-    alphas = np.array(alphas)
+        betti_threading += betti
 
-    betti_pd_i_mean = np.mean(betti_pd_i, axis=0)
-    betti_pd_i_cup_j_mean = np.mean(betti_pd_i_cup_j, axis=0)
-    betti_threading_mean = np.mean(betti_threading, axis=0)
-
+    betti_pd_i /= len(args.input)
+    betti_pd_i_cup_j /= len(args.input)
+    betti_threading /= len(args.input)
     np.savez(
         output_path,
         alphas=alphas,
-        betti_pd_i=betti_pd_i_mean,
-        betti_pd_i_cup_j=betti_pd_i_cup_j_mean,
-        betti_threading=betti_threading_mean,
+        betti_pd_i=betti_pd_i,
+        betti_pd_i_cup_j=betti_pd_i_cup_j,
+        betti_threading=betti_threading,
     )
 
 
