@@ -175,3 +175,6 @@ temp/
 tmp/
 
 log
+
+data/*.csv
+data/*.h5
