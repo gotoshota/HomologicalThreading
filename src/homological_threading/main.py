@@ -554,7 +554,7 @@ def compute_betti_number(pd, max_alpha=None, d_alpha=0.2, is_threading=False, th
     pd_fort = np.asfortranarray(pd_fort)
 
     if max_alpha is None:
-        max_alpha = np.max(tmp[:, 1])
+        max_alpha = np.max(pd[:, 1])
     n_alpha = int(max_alpha / d_alpha) + 1
     if is_threading:
         betti_number = fc.betti_number_threading(pd_fort, d_alpha, n_alpha, threshold)
