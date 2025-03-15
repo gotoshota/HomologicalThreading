@@ -331,8 +331,8 @@ python tests/test.py
 1. パーシステントホモロジーの理論:
    - Edelsbrunner, H., & Harer, J. (2010). Computational Topology: An Introduction. American Mathematical Society.
 
-2. 環状高分子のトポロジー:
-   - Michieletto, D., & Turner, M. S. (2016). A topologically driven glass in ring polymers. Proceedings of the National Academy of Sciences, 113(19), 5195-5200.
+2. 先行研究:
+   - F. Landuzzi, T. Nakamura, D. Michieletto, and T. Sakaue, Persistent homology of entangled rings, Physical Review Research 2, 033529 (2020).
 
 3. HomCloudライブラリ:
    - Obayashi, I. (2018). HomCloud: A computing software for persistent homology. https://homcloud.dev/
