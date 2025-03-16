@@ -24,6 +24,10 @@ def get_args():
     betti_parser.add_argument("-i", "--input", nargs="+", help="Input HDF5 files")
     betti_parser.add_argument("-o", "--outputdir", default=".", help="Output directory")
 
+    # Num threading command
+    num_threading_parser = subparsers.add_parser("num_threading", help="Number of threading")
+    num_threading_parser.add_argument("-i", "--input", nargs="+", help="Input HDF5 files")
+
     return parser.parse_args()
 
 def calc_ensemble_betti_numbers(pds, normalization=1.0):
@@ -122,6 +126,18 @@ def _betti(args):
         betti_threading=betti_threading,
     )
 
+def _num_threading(args):
+    for filename in args.input:
+        pds = ht.HomologicalThreading()
+        pds.from_hdf5(filename)
+        n_a, n_p = pds.threading.num_threading()
+        print(pds.threading.flags[0])
+        print(n_a)
+        print(np.mean(n_a))
+        print(np.std(n_a))
+        print(n_p)
+        print(np.mean(n_p))
+        print(np.std(n_p))
 
 def main():
     args = get_args()
@@ -129,6 +145,8 @@ def main():
         _threading(args)
     elif args.command == "betti":
         _betti(args)
+    elif args.command == "num_threading":
+        _num_threading(args)
 
 
 if __name__ == "__main__":

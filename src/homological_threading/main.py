@@ -8,7 +8,7 @@ import os
 import sys
 import time
 
-from scipy.spatial import KDTree
+# from scipy.spatial import KDTree
 
 if sys.stdin.closed:
     sys.stdin = open(os.devnull, "r")
@@ -414,27 +414,27 @@ class HomologicalThreading:
             self.pd = pd_fort.T
             self.flags = flags_fort.astype(bool)
 
-        def compute_kdtree(self, pd_i, pd_i_cup_j, tol=1e-10):
-            """
-            Copute the homological threading of ring polymers using KDTree.
-
-            args:
-            pd_i: np.array, shape=(nchains, npoints, 2)
-            pd_i_cup_j: np.array, shape=(nchains, nchains, npoints', 2)
-            tol: float, tolerance for the KDTree
-            """
-            print("This function is not implemented yet.")
-            print("Please use the compute method.")
-            return
-
-            nchains = pd_i.shape[0]
-            npoints = pd_i.shape[1]
-            threading_pd = np.zeros((nchains, nchains, npoints, 2), dtype=np.float64)
-            for passive_idx in range(nchains):
-                for active_idx in range(nchains):
-                    threading_pd[passive_idx, active_idx] = self.set_difference(
-                        pd_i[passive_idx], pd_i_cup_j[passive_idx, active_idx], tol
-                    )
+        # def compute_kdtree(self, pd_i, pd_i_cup_j, tol=1e-10):
+        #     """
+        #     Copute the homological threading of ring polymers using KDTree.
+        #
+        #     args:
+        #     pd_i: np.array, shape=(nchains, npoints, 2)
+        #     pd_i_cup_j: np.array, shape=(nchains, nchains, npoints', 2)
+        #     tol: float, tolerance for the KDTree
+        #     """
+        #     print("This function is not implemented yet.")
+        #     print("Please use the compute method.")
+        #     return
+        #
+        #     nchains = pd_i.shape[0]
+        #     npoints = pd_i.shape[1]
+        #     threading_pd = np.zeros((nchains, nchains, npoints, 2), dtype=np.float64)
+        #     for passive_idx in range(nchains):
+        #         for active_idx in range(nchains):
+        #             threading_pd[passive_idx, active_idx] = self.set_difference(
+        #                 pd_i[passive_idx], pd_i_cup_j[passive_idx, active_idx], tol
+        #             )
 
         def set_difference(self, A, B, tol=1e-10):
             """
@@ -492,6 +492,16 @@ class HomologicalThreading:
                 tmp, max_alpha, d_alpha, is_threading=True, threshold=1e-10
             )
             return alphas, betti_number
+
+        def num_threading(self):
+            """
+            Compute the number of threadings.
+            return:
+                na: int, numbers of active threading chains
+                np: int, numbers of passive threading chains
+            """
+            n_a, n_p = fc.compute_num_threadings(self.flags)
+            return n_a, n_p
 
     def to_hdf5(self, filename):
         """

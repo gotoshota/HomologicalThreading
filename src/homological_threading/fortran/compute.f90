@@ -210,6 +210,26 @@ contains
         end if
     end function same_point
 
+    subroutine compute_num_threadings(threading_flags, n_a, n_p)
+        implicit none
+
+        logical, intent(in) :: threading_flags(:,:) ! shape: (active, passive)
+        integer, dimension(size(threading_flags, 1)), intent(out) :: n_a, n_p ! return value
+
+        integer :: i, j
+
+        n_a = 0
+        n_p = 0
+        do i = 1, size(threading_flags, 1)
+            do j = 1, size(threading_flags, 2)
+                if (threading_flags(j, i)) then
+                    n_a(i) = n_a(i) + 1
+                    n_p(j) = n_p(j) + 1
+                end if
+            end do
+        end do
+
+    end subroutine compute_num_threadings
     !subroutine shrink_array(array, n_new)
     !    implicit none
     !
