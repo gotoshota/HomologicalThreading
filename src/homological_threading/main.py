@@ -1,4 +1,13 @@
 from . import lammps_io as io
+"""
+HomologicalThreading Module
+
+A program for quantifying the threading of ring polymers using persistent homology.
+このモジュールは、環状高分子のスレッディング検出および定量化に関連するクラスを提供します。
+"""
+
+from typing import Optional
+
 from .fortran import compute as fc
 import homcloud.interface as hc
 import numpy as np
@@ -26,7 +35,7 @@ class HomologicalThreading:
     Class for computing the homological threading of ring polymers.
     """
 
-    def __init__(self, rho=None, epsilon_theta=None, source=None):
+    def __init__(self, rho: Optional[float] = None, epsilon_theta: Optional[float] = None, source: Optional[str] = None) -> None:
         self.pd_i = self.PD_i(self)
         self.pd_i_cup_j = self.PD_i_cup_j(self)
         self.threading = self.Threading(self)
@@ -67,9 +76,41 @@ class HomologicalThreading:
 
         # Metadata に情報を格納
         self.metadata["nchains"] = nchains
+
+    def to_hdf5(self, filename: str) -> None:
+        """Save computed persistence diagrams and threading to an HDF5 file.
+
+        Args:
+            filename (str): Path to the output HDF5 file.
+        """
+        with h5py.File(filename, "w") as f:
+            f.create_dataset("pd_i", data=self.pd_i.pd)
+            f.create_dataset("pd_i_cup_j", data=self.pd_i_cup_j.pd)
+            f.create_dataset("threading", data=self.threading.pd)
+            meta_group = f.create_group("metadata")
+            for key, value in self.metadata.items():
+                meta_group.attrs[key] = value if value is not None else ""
+
+    def from_hdf5(self, filename: str) -> None:
+        """Load computed persistence diagrams and threading from an HDF5 file.
+
+        Args:
+            filename (str): Path to the input HDF5 file.
+        """
+        with h5py.File(filename, "r") as f:
+            self.pd_i.pd = f["pd_i"][()]
+            self.pd_i_cup_j.pd = f["pd_i_cup_j"][()]
+            self.threading.pd = f["threading"][()]
+            if "metadata" in f:
+                for key, value in f["metadata"].attrs.items():
+                    self.metadata[key] = value
+
+        nchains = self.pd_i.pd.shape[0]
+        nbeads = self.pd_i.pd.shape[1] if nchains > 0 else 0
+        self.metadata["nchains"] = nchains
         self.metadata["nbeads"] = nbeads
         self.metadata["nparticles"] = nchains * nbeads
-        self.metadata["box_dim"] = box_dim
+        self.metadata["box_dim"] = self.metadata.get("box_dim", 0)
         self.metadata["source"] = filename
 
         # (nparticles, 3) -> (nchains, nbeads, 3)
