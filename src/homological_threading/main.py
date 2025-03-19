@@ -76,6 +76,12 @@ class HomologicalThreading:
 
         # Metadata に情報を格納
         self.metadata["nchains"] = nchains
+        self.metadata["nbeads"] = nbeads
+        self.metadata["nparticles"] = nchains * nbeads
+        self.metadata["box_dim"] = box_dim
+        self.metadata["source"] = filename
+        return coords.reshape(nchains, nbeads, 3)
+
 
     def to_hdf5(self, filename: str) -> None:
         """Save computed persistence diagrams and threading to an HDF5 file.

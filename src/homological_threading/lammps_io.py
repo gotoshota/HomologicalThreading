@@ -28,6 +28,7 @@ class LammpsData:
         self.angles = self.Angle()
         self.box = self.Box()
         self.masses = self.Mass()
+        self.velocities = None
 
         if filename is not None:
             self.read(filename)
@@ -179,6 +180,7 @@ class LammpsData:
         # --- 2. セクション毎にデータをパース ---
         section_names = [
             "Masses",
+            "Velocities",
             "Atoms",
             "Bonds",
             "Angles",
