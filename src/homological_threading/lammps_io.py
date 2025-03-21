@@ -28,6 +28,7 @@ class LammpsData:
         self.angles = self.Angle()
         self.box = self.Box()
         self.masses = self.Mass()
+        self.velocities = None
 
         if filename is not None:
             self.read(filename)
@@ -179,6 +180,7 @@ class LammpsData:
         # --- 2. セクション毎にデータをパース ---
         section_names = [
             "Masses",
+            "Velocities",
             "Atoms",
             "Bonds",
             "Angles",
@@ -222,7 +224,7 @@ class LammpsData:
             parts = line.split()
             if current_section == "Atoms":
                 # 例: "1 1 1 0.0 0.0 0.0 ..." (原子ID, 分子ID, タイプ, x, y, z, ...)
-                if len(parts) >= 6:
+                if len(parts) >= 7:
                     self.atoms.id.append(int(parts[0]))
                     self.atoms.mol_id.append(int(parts[1]))
                     self.atoms.type.append(int(parts[2]))
@@ -231,6 +233,13 @@ class LammpsData:
                     )
                     self.atoms.image_flag.append(
                         (float(parts[6]), float(parts[7]), float(parts[8]))
+                    )
+                else:
+                    self.atoms.id.append(int(parts[0]))
+                    self.atoms.mol_id.append(int(parts[1]))
+                    self.atoms.type.append(int(parts[2]))
+                    self.atoms.coords.append(
+                        [float(parts[3]), float(parts[4]), float(parts[5])]
                     )
             elif current_section == "Masses":
                 if len(parts) >= 2:
@@ -246,25 +255,59 @@ class LammpsData:
             i += 1
         # 被ってない，mol_id の数を数える
         self.atoms.num_mols = len(set(self.atoms.mol_id))
-        # Atom, Bond セクションのデータを sort
-        self.atoms.id, self.atoms.mol_id, self.atoms.type, self.atoms.coords, self.atoms.image_flag = map(list, zip(
-            *sorted(
-                zip(
-                    self.atoms.id,
-                    self.atoms.mol_id,
-                    self.atoms.type,
-                    self.atoms.coords,
-                    self.atoms.image_flag,
-                ),
-                key=lambda x: x[0],
-            )
-        ))
-        self.bonds.id, self.bonds.type, self.bonds.atoms = map(list, zip(
-            *sorted(
-                zip(self.bonds.id, self.bonds.type, self.bonds.atoms),
-                key=lambda x: x[0],
-            )
-        ))
+        # # Atom, Bond セクションのデータを sort
+        # (
+        #     self.atoms.id,
+        #     self.atoms.mol_id,
+        #     self.atoms.type,
+        #     self.atoms.coords,
+        #     self.atoms.image_flag,
+        # ) = map(
+        #     list,
+        #     zip(
+        #         *sorted(
+        #             zip(
+        #                 self.atoms.id,
+        #                 self.atoms.mol_id,
+        #                 self.atoms.type,
+        #                 self.atoms.coords,
+        #                 self.atoms.image_flag,
+        #             ),
+        #             key=lambda x: x[0],
+        #         )
+        #     ),
+        # )
+        # 例: self.atoms に各属性が存在するかをチェックして、存在するものだけでソートする
+
+        # ソート対象とする属性名のリスト
+        attributes = ['id', 'mol_id', 'type', 'coords', 'image_flag']
+
+        # 存在する属性のみ抽出
+        present_attrs = [attr for attr in attributes if hasattr(self.atoms, attr)]
+
+        if present_attrs:
+            # 存在する属性からリストを作成
+            arrays = [getattr(self.atoms, attr) for attr in present_attrs]
+
+            # 各リストの要素をタプルにまとめ、先頭要素でソート
+            sorted_zipped = sorted(zip(*arrays), key=lambda x: x[0])
+            
+            # ソート後、再び属性ごとのリストに戻す
+            sorted_arrays = list(map(list, zip(*sorted_zipped)))
+            
+            # ソートした結果を元の属性に代入
+            for attr, sorted_array in zip(present_attrs, sorted_arrays):
+                setattr(self.atoms, attr, sorted_array)
+
+        self.bonds.id, self.bonds.type, self.bonds.atoms = map(
+            list,
+            zip(
+                *sorted(
+                    zip(self.bonds.id, self.bonds.type, self.bonds.atoms),
+                    key=lambda x: x[0],
+                )
+            ),
+        )
 
     def write(self, filename):
         """
@@ -325,8 +368,7 @@ class LammpsData:
         # 分子IDは 1 から始まる
         for i in range(1, self.atoms.num_mols + 1):
             # 分子IDが i の原子のインデックスを取得
-            idx = [j for j, mol_id in enumerate(
-                self.atoms.mol_id) if mol_id == i]
+            idx = [j for j, mol_id in enumerate(self.atoms.mol_id) if mol_id == i]
             if not idx:
                 continue
 
@@ -340,7 +382,8 @@ class LammpsData:
             # 1. 分子内で「アンラップ」する（隣接原子との連続性を保持）
             # 最初の原子はそのまま採用
             unwrapped_coords = [list(self.atoms.coords[idx[0]])]
-            unwrapped_image_flag = [list(self.atoms.image_flag[idx[0]])]
+            if idx and idx[0] < len(self.atoms.image_flag):
+                unwrapped_image_flag = [list(self.atoms.image_flag[idx[0]])]
             for k in range(1, len(idx)):
                 prev_coord = unwrapped_coords[k - 1]
                 current_coord = list(self.atoms.coords[idx[k]])
@@ -358,15 +401,17 @@ class LammpsData:
                     else:
                         shift_val = 0
                     new_coord.append(current_coord[d] - shift_val * L)
-                    new_image.append(float(shift_val))
+                    if idx and idx[0] < len(self.atoms.image_flag):
+                        new_image.append(float(shift_val))
                 unwrapped_coords.append(new_coord)
                 # image_flag はタプルの場合が多いので、リスト内各成分同士を足し合わせたタプルにする
-                unwrapped_image_flag.append(
-                    tuple(
-                        float(a) + float(b)
-                        for a, b in zip(self.atoms.image_flag[idx[k]], new_image)
+                if idx and idx[0] < len(self.atoms.image_flag):
+                    unwrapped_image_flag.append(
+                        tuple(
+                            float(a) + float(b)
+                            for a, b in zip(self.atoms.image_flag[idx[k]], new_image)
+                        )
                     )
-                )
 
             # 2. 分子の重心（COM）を計算（各原子の質量が等しいと仮定）
             n_atoms = len(unwrapped_coords)
@@ -393,22 +438,24 @@ class LammpsData:
             for coord in unwrapped_coords:
                 new_coord = [coord[d] + shift[d] for d in range(3)]
                 wrapped_coords.append(new_coord)
-            for image_flag in unwrapped_image_flag:
-                new_img = [
-                    float(image_flag[d]) + float(shift_image[d]) for d in range(3)
-                ]
-                new_image_flag.append(new_img)
+            if idx and idx[0] < len(self.atoms.image_flag):
+                for image_flag in unwrapped_image_flag:
+                    new_img = [
+                        float(image_flag[d]) + float(shift_image[d]) for d in range(3)
+                    ]
+                    new_image_flag.append(new_img)
 
             # 5. 元の座標リストと image_flag を更新
             for index, new_coord in zip(idx, wrapped_coords):
                 self.atoms.coords[index] = new_coord
-            for index, new_img in zip(idx, new_image_flag):
-                self.atoms.image_flag[index] = tuple(new_img)
+            if hasattr(self.atoms, 'image_flag'):
+                for index, new_img in zip(idx, new_image_flag):
+                    self.atoms.image_flag[index] = tuple(new_img)
 
 
 # 動作確認用（必要に応じてパスを適宜変更してください）
 if __name__ == "__main__":
-    data = LammpsData("../../../tmp/murashima/N100M100.data")
+    data = LammpsData("../../data/N10M100.data")
     # Test box
     print(f"{data.box.x=}")
     print(f"{data.box.y=}")
