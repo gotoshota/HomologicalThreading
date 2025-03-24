@@ -21,20 +21,20 @@ def get_args():
 
 
 def betti(args):
-    num_files = len(args.filename)
+    num_files = len(args.input)
     fig, axes = plt.subplots(num_files, 1)
     if num_files == 1:
         axes = [axes]
-    for i, filename in enumerate(args.filename):
-        plot(axes[i], filename)
+    for i, input in enumerate(args.input):
+        plot_betti(axes[i], input)
     if args.output:
         plt.savefig(args.output)
     else:
         plt.show()
 
 
-def plot_betti(ax, filename):
-    data = np.load(filename)
+def plot_betti(ax, input):
+    data = np.load(input)
     alphas = data["alphas"]
     betti = data["betti_pd_i"]
     const = 100.0
@@ -52,12 +52,12 @@ def plot_betti(ax, filename):
     ax.legend()
 
 def pd(args):
-    num_files = len(args.filename)
+    num_files = len(args.input)
     fig, axes = plt.subplots(num_files, 3, figsize=(15, 5*num_files))
     if num_files == 1:
         axes = [axes]
-    for i, filename in enumerate(args.filename):
-        plot_pd(axes[i], filename)
+    for i, input in enumerate(args.input):
+        plot_pd(axes[i], input)
     # All axes should be [0, 400]
     for ax in axes:
         for a in ax:
@@ -68,8 +68,8 @@ def pd(args):
     else:
         plt.show()
 
-def plot_pd(ax, filename):
-    with h5py.File(filename, "r") as data:
+def plot_pd(ax, input):
+    with h5py.File(input, "r") as data:
         tmp = data["pd_i/pd"][:]
         tmp = tmp.reshape(-1, 2)
         # #. of points without nan
@@ -100,4 +100,4 @@ def main(args):
 
 if __name__ == "__main__":
     args = get_args()
-    main()
+    main(args)
