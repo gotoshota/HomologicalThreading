@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+import h5py
 
 
 def get_args():
@@ -86,6 +87,12 @@ def plot_pd(ax, input):
         print(np.sum(~np.isnan(tmp[:, 0])))
         ax[2].scatter(tmp[:, 0], tmp[:, 1])
         ax[2].set_title("threading")
+        for a in ax:
+            a.set_aspect("equal")
+            a.set_xlabel("Birth")
+            a.set_ylabel("Death")
+            a.set_xscale("log")
+            a.set_yscale("log")
 
 
 def main(args):
