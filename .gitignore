@@ -174,3 +174,5 @@ cython_debug/
 temp/
 
 log
+
+.DS_Store
