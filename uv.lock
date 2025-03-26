@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.13"
 
 [[package]]
@@ -470,7 +471,7 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/77/ab/f540e30dc24348ee862afbc433b298ad221e08548c202fc2c692bc5838ab/homcloud-4.6.0.tar.gz", hash = "sha256:8ab0dd934126506e1c7a7b0cd7f568a0d9031cb1e3b32f7f8556e0861e85951a", size = 24040799 }
 
 [[package]]
-name = "homologicalthreading"
+name = "homological-threading"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

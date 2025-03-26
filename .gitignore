@@ -178,3 +178,4 @@ log
 
 data/*.csv
 data/*.h5
+.aider*
