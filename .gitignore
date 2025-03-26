@@ -172,7 +172,10 @@ cython_debug/
 
 # temporally directory
 temp/
+tmp/
 
 log
 
+data/*.csv
+data/*.h5
 .DS_Store
