@@ -179,3 +179,4 @@ log
 data/*.csv
 data/*.h5
 .DS_Store
+.aider*

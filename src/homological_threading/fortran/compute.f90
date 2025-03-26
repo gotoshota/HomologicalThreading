@@ -223,8 +223,8 @@ contains
         do i = 1, size(threading_flags, 1)
             do j = 1, size(threading_flags, 2)
                 if (threading_flags(j, i)) then
-                    n_a(i) = n_a(i) + 1
-                    n_p(j) = n_p(j) + 1
+                    n_a(j) = n_a(j) + 1
+                    n_p(i) = n_p(i) + 1
                 end if
             end do
         end do
