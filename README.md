@@ -35,7 +35,6 @@ This project is designed to quantify the threading (entanglement) of cyclic poly
   - [8. Developer Information](#8-developer-information)
     - [8.1 Extending the Code](#81-extending-the-code)
     - [8.2 Changes to Repository Structure](#82-changes-to-repository-structure)
-  - [9. License](#9-license)
 
 ---
 
@@ -214,9 +213,3 @@ To add new features, edit:
 
 ### 8.2 Changes to Repository Structure
 Update root-level files (e.g., `main.py`, `build.sh`, `pyproject.toml`) as needed.
-
----
-
-## 9. License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
