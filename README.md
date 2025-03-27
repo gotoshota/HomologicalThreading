@@ -1,125 +1,109 @@
 # Homological Threading Documentation
 
-- [日本語版](README.ja.md)
+- [Japanese Version](README.ja.md)
 - [English Version](README.md)
 
 # Homological Threading
 
-This project is a program to quantify the threading of **cyclic polymers** based on **persistent homology**.  
-By using persistent homology, it is possible to analyze the geometric and topological features (holes, cavities, connected components, etc.) of data at different scales, capturing the complex entanglement (threading) between cyclic polymers.
+This project is designed to quantify the threading (entanglement) of cyclic polymers using persistent homology. By applying persistent homology, the program analyzes the geometric and topological features (e.g., holes, voids, connected components) in a multi-scale manner to capture the complex intertwinement between cyclic polymers.
 
 ---
 
 ## Table of Contents
-- [Features](#features)
-- [Directory Structure](#directory-structure)
-- [Environment and Dependencies](#environment-and-dependencies)
-- [Installation](#installation)
-  - [1. Prepare Required Libraries](#1-prepare-required-libraries)
-  - [2. Set Up Python Virtual Environment](#2-set-up-python-virtual-environment)
-  - [3. Build the Project](#3-build-the-project)
-- [Usage](#usage)
-  - [Calculate and Analyze Persistent Diagrams](#calculate-and-analyze-persistent-diagrams)
-  - [Calculate Betti Numbers](#calculate-betti-numbers)
-  - [Visualize Results](#visualize-results)
-- [Run Tests](#run-tests)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
+- [Homological Threading Documentation](#homological-threading-documentation)
+- [Homological Threading](#homological-threading)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Directory Structure](#directory-structure)
+  - [3. System Requirements and Dependencies](#3-system-requirements-and-dependencies)
+    - [3.1 Requirements](#31-requirements)
+      - [3.1.1 Python Environment](#311-python-environment)
+      - [3.1.2 Fortran Compiler](#312-fortran-compiler)
+      - [3.1.3 CGAL (Computational Geometry Algorithms Library)](#313-cgal-computational-geometry-algorithms-library)
+  - [4. Installation Instructions](#4-installation-instructions)
+    - [4.1 Installing Dependencies](#41-installing-dependencies)
+    - [4.2 Setting Up the Python Virtual Environment](#42-setting-up-the-python-virtual-environment)
+    - [4.3 Building the Project](#43-building-the-project)
+  - [5. Usage](#5-usage)
+    - [5.1 Calculation and Analysis of Persistence Diagrams](#51-calculation-and-analysis-of-persistence-diagrams)
+    - [5.2 Betti Numbers Calculation](#52-betti-numbers-calculation)
+    - [5.3 Visualization of Results](#53-visualization-of-results)
+  - [6. Running Tests](#6-running-tests)
+  - [7. Troubleshooting](#7-troubleshooting)
+    - [7.1 Installation Issues](#71-installation-issues)
+    - [7.2 Runtime Issues](#72-runtime-issues)
+  - [8. Developer Information](#8-developer-information)
+    - [8.1 Extending the Code](#81-extending-the-code)
+    - [8.2 Changes to Repository Structure](#82-changes-to-repository-structure)
+  - [9. License](#9-license)
 
 ---
 
 ## Features
-- **Persistent Homology Analysis**: Tracks topological features (holes, connected components, cavities, etc.) of point cloud data through filtration, enabling quantitative analysis.
-- **Threading Quantification**: Evaluates the entanglement between single and multiple cyclic polymers through persistent diagrams (PD) and Betti number calculations.
-- **High-Speed Computation**: The computation core is implemented in Fortran, allowing efficient operations even on large-scale data.
+- **Persistent Homology Analysis**: Analyzes point cloud data through filtrations at multiple scales to quantify topological features such as connected components, holes, and voids.
+- **Threading Quantification**: Evaluates the entanglement between single and multiple cyclic polymers using persistence diagrams and Betti numbers.
+- **High-Performance Computation**: The computational core is implemented in Fortran, ensuring efficient processing even for large-scale datasets.
 
 ---
 
 ## Directory Structure
-Below is the main directory structure of the project:
+
+The main files and directories of the project are as follows:
 
 ```
-HomologicalThreading/
-├── data/                  # Sample data
-│   ├── ht.h5              # Sample analysis result
-│   └── N10M100.data       # Sample LAMMPS data file
-├── scripts/               # Analysis and visualization scripts
-│   ├── analysis.py        # Persistent diagram calculation and Betti number analysis
-│   ├── plot_betti.py      # Betti number plotting
-│   └── plot_pd.py         # Persistent diagram visualization
-├── src/                   # Source code
-│   └── homological_threading/
-│       ├── __init__.py
-│       ├── lammps_io.py   # LAMMPS data file I/O
-│       ├── main.py        # Main implementation
-│       └── fortran/       # Fortran-based high-speed implementation
-│           ├── __init__.py
-│           ├── compute.f90 # Computation core
-│           └── Makefile
-├── tests/                 # Test code
-│   └── test.py
+HomologicalThreading/          ← Project root
 ├── .gitignore
 ├── .python-version
-├── build.sh               # Build script
-├── pyproject.toml         # Python project settings
-├── README.md              # This file
-├── main.py                # Interface
-└── uv.lock                # Dependency lock file
-
+├── build.sh                   ← Build script
+├── main.py                    ← Entry point (interface)
+├── pyproject.toml             ← Project configuration file
+├── README.md                  ← This English README
+├── README.ja.md               ← Japanese README
+├── uv.lock                    ← Dependency lock file
+├── data/                     ← Sample data, etc.
+│   ├── N10M100.data          ← Sample LAMMPS data file
+│   └── (other data)
+├── docs/                     ← Documentation
+│   ├── build/
+│   └── source/
+│       ├── _static/
+│       └── _templates/
+├── scripts/                  ← Analysis and visualization scripts
+│   ├── __init__.py
+│   ├── analysis.py           ← Persistence diagram and Betti numbers analysis
+│   └── plot.py               ← Visualization (integrated plotting functions)
+├── src/                      ← Source code
+│   └── homological_threading/
+│       ├── __init__.py
+│       ├── lammps_io.py      ← Input/output for LAMMPS data files
+│       ├── main.py           ← Core functionality implementation
+│       └── fortran/          ← Fortran implementation for high-performance computation
+│           ├── __init__.py
+│           ├── compute.f90   ← Core routines for threading and Betti numbers calculation
+│           └── Makefile
+└── tests/                    ← Test code
+    └── test.py
 ```
 
-### 2.2 Main Components
+*Note: The directory structure is based on the latest project layout.*
 
-#### 2.2.1 Python Part
+---
 
-- `homological_threading/main.py`: 
-  - `HomologicalThreading` class: Central class of the project
-  - `PD_i` class: Calculates the persistent diagram of a single cyclic polymer
-  - `PD_i_cup_j` class: Calculates the persistent diagram of the cup product of two cyclic polymers
-  - `Threading` class: Detection and quantification of threading
-
-- `homological_threading/lammps_io.py`: 
-  - `LammpsData` class: Reading and writing LAMMPS data files
-  - `polyWrap` method: Proper placement of molecules under periodic boundary conditions
-
-#### 2.2.2 Fortran Part
-
-- `homological_threading/fortran/compute.f90`: 
-  - `threading` subroutine: High-speed implementation of threading calculation
-  - `betti_number` subroutine: High-speed implementation of Betti number calculation
-
-#### 2.2.3 Scripts
-
-- `main.py`: Functions as the interface for the entire program, calling each submodule for analysis and plotting based on user input
-- `scripts/analysis.py`: Calculation of persistent diagrams and Betti number analysis
-- `scripts/plot_pd.py`: Visualization of persistent diagrams
-- `scripts/plot_betti.py`: Plotting of Betti numbers
-
-## 3. Installation
+## 3. System Requirements and Dependencies
 
 ### 3.1 Requirements
 
 #### 3.1.1 Python Environment
-
 - Python 3.13 or higher
 - uv (Python project management tool)
 
-Install uv:
+Install uv using:
 ```bash
 pip install uv
 ```
 
 #### 3.1.2 Fortran Compiler
-
-A Fortran compiler is required:
-- gfortran (GNU Fortran Compiler)
-- ifx (Intel Fortran Compiler)
-
-On Ubuntu:
-```bash
-sudo apt install gfortran
-```
+- gfortran (GNU Fortran Compiler) or ifx (Intel Fortran Compiler)
 
 On macOS:
 ```bash
@@ -127,229 +111,112 @@ brew install gcc
 ```
 
 #### 3.1.3 CGAL (Computational Geometry Algorithms Library)
-
-Required as a dependency for the HomCloud library.
-
-**To install system-wide:**
-
-On Ubuntu:
-```bash
-sudo apt install libcgal-dev
-```
+CGAL is required as a dependency for the HomCloud library.
 
 On macOS:
 ```bash
 brew install cgal
 ```
 
-**To install locally:**
+Alternatively, compile BOOST and CGAL from source for a local installation.
 
-If you do not have administrator privileges, you can install locally using the following steps.
+---
 
-1. Install BOOST:
-   ```bash
-   wget https://archives.boost.io/release/1.79.0/source/boost_1_79_0.tar.bz2
-   tar xvf boost_1_79_0.tar.bz2
-   cd boost_1_79_0
-   ./bootstrap.sh 
-   ./b2 headers
-   ```
-   After installation, set the environment variable:
-   ```bash
-   export LD_LIBRARY_PATH=/path/to/boost_1_79_0:$LD_LIBRARY_PATH
-   ```
+## 4. Installation Instructions
 
-2. Install CGAL:
-   ```bash
-   wget https://github.com/CGAL/cgal/releases/download/v5.6.2/CGAL-5.6.2.tar.xz
-   tar xvf CGAL-5.6.2.tar.xz
-   ```
-   After installation, set the environment variable:
-   ```bash
-   export LD_LIBRARY_PATH=/path/to/CGAL-5.6.2:$LD_LIBRARY_PATH
-   ```
+### 4.1 Installing Dependencies
+Ensure that the above dependencies (Python, Fortran compiler, CGAL, etc.) are installed.
 
-### 3.2 Set Up Python Virtual Environment
+### 4.2 Setting Up the Python Virtual Environment
 
-Create a virtual environment using uv:
-
+Use uv to create and synchronize the virtual environment:
 ```bash
 uv sync
 ```
 
-If building HomCloud fails, try specifying the CGAL include path:
-
+If the CGAL include path is required, specify it as follows:
 ```bash
 CPLUS_INCLUDE_PATH=/path/to/CGAL-5.6.2/include:$CPLUS_INCLUDE_PATH uv sync
 ```
 
-### 3.3 Build
+### 4.3 Building the Project
 
-Build the project with the following command:
-
+Build the Fortran code and perform any other necessary build steps with:
 ```bash
 ./build.sh
 ```
 
-If the Fortran compiler is not found, set the `FC` variable in `src/homological_threading/fortran/Makefile` to the appropriate compiler.
+If the Fortran compiler is not detected, adjust the `FC` variable in `src/homological_threading/fortran/Makefile` appropriately.
 
-Example:
-```makefile
-# Use gfortran
-FC = gfortran
+---
 
-# Use Intel Fortran Compiler
-# FC = ifx
-```
+## 5. Usage
 
-## 4. Usage
-
-### 4.1 Basic Usage Examples
-
-#### 4.1.1 Calculate Persistent Diagrams
-
-Calculate persistent diagrams from LAMMPS data files:
-
+### 5.1 Calculation and Analysis of Persistence Diagrams
+Compute the persistence diagrams (PD) of cyclic polymers from a LAMMPS data file and analyze threading:
 ```bash
 uv run python main.py analysis pd -i data/N10M100.data -o output_directory
 ```
+This command:
+1. Reads cyclic polymer coordinates from the LAMMPS data file.
+2. Computes the persistence diagram (PD_i) for individual polymers.
+3. Analyzes threading (e.g., by computing PD_i_cup_j) between multiple polymers.
+4. Saves the analysis results in HDF5 format.
 
-This command performs the following:
-1. Reads coordinates of cyclic polymers from LAMMPS data files
-2. Calculates the persistent diagram (PD_i) of a single cyclic polymer
-3. Calculates the persistent diagram (PD_i_cup_j) of cyclic polymer pairs
-4. Detects and quantifies threading
-5. Saves results to an HDF5 file
+### 5.2 Betti Numbers Calculation
 
-#### 4.1.2 Calculate Betti Numbers
-
-Calculate Betti numbers from saved HDF5 files:
-
+Calculate Betti numbers from the saved HDF5 files:
 ```bash
-uv run main analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
+uv run python main.py analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
 ```
 
-#### 4.1.3 Visualize Results
+### 5.3 Visualization of Results
 
-Visualize persistent diagrams:
-
+Visualize the analysis results using:
 ```bash
-uv run main.py plot pd -i output_directory/analysis.h5
-uv run main.py plot pd -i output_directory/*.h5
+uv run python main.py plot -i output_directory/analysis.h5
 ```
 
-Plot Betti numbers:
+---
 
-```bash
-uv run main plot betti -i data/analysis.h5
-uv run main plot betti -i data/*.h5
-```
+## 6. Running Tests
 
-### 4.2 Input Data Format
-
-This project accepts input in the form of LAMMPS data files. These files contain atomic coordinates, bonding information, and periodic boundary conditions for cyclic polymers.
-
-Sample data `data/N10M100.data` is provided, representing a system with 100 cyclic polymers each consisting of 10 beads.
-
-### 4.3 Interpretation of Output Data
-
-#### 4.3.1 HDF5 File Structure
-
-The output HDF5 file contains the following information:
-
-- `/pd_i/pd`: Persistent diagram of a single cyclic polymer
-    - shape: [num_chains, num_points, 2]
-        - num_chains: Number of cyclic polymers
-        - num_points: Number of points
-        - 2: 2D coordinates of birth and death
-    - Example 1: `pd_i/pd[0]` is the persistent diagram of the first cyclic polymer
-    - Example 2: `pd_i/pd[0, 0]` is the persistent diagram of the first point of the first cyclic polymer
-    - Example 3: `pd_i/pd[0, 0, 0]` is the birth of the first point of the first cyclic polymer, `pd_i/pd[0, 0, 1]` is the death of the first point of the first cyclic polymer
-- `/pd_i_cup_j/pd`: Persistent diagram of cyclic polymer pairs
-    - shape: [num_chains, num_chains, num_points, 2]
-        - num_chains: Number of cyclic polymers
-        - num_points: Number of points
-        - 2: 2D coordinates of birth and death
-    - Example 1: `pd_i_cup_j/pd[0, 1]` is the persistent diagram of the first and second cyclic polymers
-    - Example 2: `pd_i_cup_j/pd[0, 1, 0]` is the persistent diagram of the first point of the first and second cyclic polymers
-    - Example 3: `pd_i_cup_j/pd[0, 1, 0, 0]` is the birth of the first point of the first and second cyclic polymers, `pd_i_cup_j/pd[0, 1, 0, 1]` is the death of the first point of the first and second cyclic polymers
-- `/threading/flags`: Flags indicating the presence of threading
-    - shape: [num_chains, num_chains]
-        - num_chains: Number of cyclic polymers
-            - Boolean matrix composed of True and False
-            - Represents passive and active, respectively
-    - Example: `threading/flags[0, 1]` indicates whether the second cyclic polymer is threading the first cyclic polymer
-- `/threading/pd`: Persistent diagram related to threading
-    - shape: [num_chains, num_chains, num_points, 2]
-        - num_chains: Number of cyclic polymers
-        - num_points: Number of points
-        - 2: 2D coordinates of birth and death
-    - Example 1: `threading/pd[0, 1]` is the persistent diagram related to threading of the first and second cyclic polymers
-- `/Metadata`: Metadata related to the analysis
-
-#### 4.3.2 Interpretation of Persistent Diagrams
-
-Persistent diagrams represent the "birth" and "death" scales of topological features. The horizontal axis represents the birth scale, and the vertical axis represents the death scale. Points farther from the diagonal represent features with high "persistence" against changes in the radius parameter.
-
-### 5.1 Basics of Persistent Homology
-
-Persistent homology is a method for capturing the topological features of data at different scales. For point clouds, the distance ε between points is gradually increased, and the topological features of the simplicial complex formed during this process are tracked.
-
-- 0-dimensional homology: Connected components (points)
-- 1-dimensional homology: Loops (holes)
-- 2-dimensional homology: Cavities
-
-For cyclic polymers, 1-dimensional homology is particularly important.
-
-### 5.2 Method for Detecting Threading
-
-In this project, threading is detected using the following steps:
-
-1. Calculate the persistent diagram (PD_i) of a single cyclic polymer i
-2. Calculate the persistent diagram (PD_i_cup_j) of the cup product of cyclic polymers i and j
-3. Calculate the difference between PD_i and PD_i_cup_j
-4. If a difference exists, it is determined that polymer j is threading polymer i
-
-This method captures the topological changes caused by threading.
-
-## 6. Troubleshooting
-
-### 6.1 Installation Issues
-
-#### 6.1.1 If Building HomCloud Fails
-
-If the CGAL include path is not set correctly, building HomCloud may fail.
-Please check if the correct path is set.
-For example, try the following:
-
-```bash
-CPLUS_INCLUDE_PATH=/path/to/CGAL-5.6.2/include:$CPLUS_INCLUDE_PATH uv sync
-```
-
-#### 6.1.2 If Fortran Compilation Fails
-
-Please check if the `FC` variable in `src/homological_threading/fortran/Makefile` is set correctly.
-
-### 6.2 Runtime Issues
-
-#### 6.2.1 If Computation is Slow
-
-- Increase the number of OpenMP threads: `export OMP_NUM_THREADS=8`
-- Enable Python multiprocessing (`mp=True` option)
-
-## 7. Developer Information
-
-### 7.1 Extending the Code
-
-To add new features, edit the following files:
-
-- New analysis: `src/homological_threading/main.py`
-- Modify input/output formats: `src/homological_threading/lammps_io.py`
-- Speed up computation: `src/homological_threading/fortran/compute.f90`
-
-### 7.2 Testing
-
-To run tests:
-
+Run the test suite with:
 ```bash
 python tests/test.py
+```
+
+---
+
+## 7. Troubleshooting
+
+### 7.1 Installation Issues
+
+- **HomCloud Build Failure**: Ensure that the CGAL include path is set correctly.
+- **Fortran Compilation Failure**: Check that the `FC` variable in `src/homological_threading/fortran/Makefile` is correctly configured.
+
+### 7.2 Runtime Issues
+
+- **Slow Computation**:
+  - Increase the number of threads by setting the `OMP_NUM_THREADS` environment variable (e.g., `export OMP_NUM_THREADS=8`).
+  - Consider enabling Python multiprocessing.
+
+---
+
+## 8. Developer Information
+
+### 8.1 Extending the Code
+To add new features, edit:
+- Core analysis logic: `src/homological_threading/main.py`
+- Input/output routines: `src/homological_threading/lammps_io.py`
+- High-performance routines: `src/homological_threading/fortran/compute.f90` and `Makefile`
+- Tests: `tests/test.py`
+
+### 8.2 Changes to Repository Structure
+Update root-level files (e.g., `main.py`, `build.sh`, `pyproject.toml`) as needed.
+
+---
+
+## 9. License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

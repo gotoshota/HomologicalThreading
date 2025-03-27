@@ -1,109 +1,101 @@
-# Homological Threading Documentation
+# Homological Threading ドキュメント
 
 - [日本語版](README.ja.md)
 - [English Version](README.md)
 
 # Homological Threading
 
-このプロジェクトは、**環状高分子**のスレッディングを**パーシステントホモロジー**に基づいて定量化するためのプログラムです。  
-パーシステントホモロジーを用いることで、データの幾何学的および位相的特徴（穴、空洞、連結成分など）を異なるスケールで解析でき、環状高分子間の複雑な絡み合い（スレッディング）を捉えることが可能です。
+本プロジェクトは、**環状高分子**のスレッディング（絡み合い）を**パーシステントホモロジー**に基づいて定量化するためのプログラムです。パーシステントホモロジーにより、データの幾何学的・位相的な特徴（穴、空洞、連結成分など）を多段階で解析し、環状高分子間の複雑な絡み合いを捉えます。
 
 ---
 
 ## 目次
-- [特徴](#特徴)
-- [ディレクトリ構造](#ディレクトリ構造)
-- [動作環境と依存ライブラリ](#動作環境と依存ライブラリ)
-- [インストール方法](#インストール方法)
-  - [1. 必要なライブラリの準備](#1-必要な-ライブラリの-準備)
-  - [2. Python仮想環境のセットアップ](#2-python仮想環境の-セットアップ)
-  - [3. プロジェクトのビルド](#3-プロジェクトの-ビルド)
-- [使用方法](#使用方法)
-  - [パーシステント図の計算と解析](#パーシステント図の-計算と解析)
-  - [Betti数の計算](#Betti数の-計算)
-  - [結果の可視化](#結果の-可視化)
-- [テストの実行](#テストの-実行)
-- [トラブルシューティング](#トラブルシューティング)
-- [貢献について](#貢献について)
-- [ライセンス](#ライセンス)
+- [Homological Threading ドキュメント](#homological-threading-ドキュメント)
+- [Homological Threading](#homological-threading)
+  - [目次](#目次)
+  - [特徴](#特徴)
+  - [ディレクトリ構造](#ディレクトリ構造)
+  - [3. 動作環境と依存ライブラリ](#3-動作環境と依存ライブラリ)
+    - [3.1 必要条件](#31-必要条件)
+      - [3.1.1 Python環境](#311-python環境)
+      - [3.1.2 Fortranコンパイラ](#312-fortranコンパイラ)
+      - [3.1.3 CGAL (Computational Geometry Algorithms Library)](#313-cgal-computational-geometry-algorithms-library)
+  - [4. インストール方法](#4-インストール方法)
+    - [4.1 必要なライブラリの準備](#41-必要なライブラリの準備)
+    - [4.2 Python仮想環境のセットアップ](#42-python仮想環境のセットアップ)
+    - [4.3 プロジェクトのビルド](#43-プロジェクトのビルド)
+  - [5. 使用方法](#5-使用方法)
+    - [5.1 パーシステント図の計算と解析](#51-パーシステント図の計算と解析)
+    - [5.2 Betti数の計算](#52-betti数の計算)
+    - [5.3 結果の可視化](#53-結果の可視化)
+  - [6. テストの実行](#6-テストの実行)
+  - [7. トラブルシューティング](#7-トラブルシューティング)
+    - [7.1 インストール関連の問題](#71-インストール関連の問題)
+    - [7.2 実行時の問題](#72-実行時の問題)
+  - [8. 開発者向け情報](#8-開発者向け情報)
+    - [8.1 コードの拡張](#81-コードの拡張)
+    - [8.2 リポジトリ構成の変更](#82-リポジトリ構成の変更)
+  - [9. ライセンス](#9-ライセンス)
 
 ---
 
 ## 特徴
-- **パーシステントホモロジー解析**: フィルトレーションを通じて点群データの位相的特徴（穴、連結成分、空洞など）を追跡し、定量的な解析を可能にします。
-- **スレッディング定量化**: 単一の環状高分子および複数の環状高分子間の絡み合いを、パーシステント図（PD）やbetti数計算を通じて評価します。
-- **高速計算**: 計算コアはFortranにより実装され、大規模データに対しても効率的に演算可能です。
+- **パーシステントホモロジー解析**: 点群データをフィルトレーションにより多段階で解析し、連結成分、穴、空洞などの位相的特徴を定量化。
+- **スレッディング定量化**: 単一の環状高分子および複数環状高分子間の絡み合い（スレッディング）を、パーシステント図やBetti数計算を通じて評価。
+- **高速計算**: 計算コアはFortranで実装されており、大規模データにも迅速に対応可能。
 
 ---
 
 ## ディレクトリ構造
-以下はプロジェクトの主なディレクトリ構造です：
+
+プロジェクトの主要なファイル・ディレクトリは以下の通りです：
 
 ```
-HomologicalThreading/
-├── data/                  # サンプルデータ
-│   ├── ht.h5              # 解析結果のサンプル
-│   └── N10M100.data       # LAMMPSデータファイルのサンプル
-├── scripts/               # 解析・可視化スクリプト
-│   ├── analysis.py        # パーシステント図計算とbetti数解析
-│   ├── plot_betti.py      # betti数のプロット
-│   └── plot_pd.py         # パーシステント図の可視化
-├── src/                   # ソースコード
-│   └── homological_threading/
-│       ├── __init__.py
-│       ├── lammps_io.py   # LAMMPSデータファイルの入出力
-│       ├── main.py        # メインの実装
-│       └── fortran/       # Fortranによる高速化実装
-│           ├── __init__.py
-│           ├── compute.f90 # 計算コア部分
-│           └── Makefile
-├── tests/                 # テストコード
-│   └── test.py
+HomologicalThreading/          ← プロジェクトルート
 ├── .gitignore
 ├── .python-version
-├── build.sh               # ビルドスクリプト
-├── pyproject.toml         # Pythonプロジェクト設定
-├── README.md              # このファイル
-├── main.py                # インターフェース
-└── uv.lock                # 依存関係ロックファイル
-
+├── build.sh                   ← ビルドスクリプト
+├── main.py                    ← ルートレベルのエントリーポイント（インターフェース）
+├── pyproject.toml             ← プロジェクト設定ファイル
+├── README.ja.md               ← この日本語README
+├── README.md                  ← 英語版README
+├── uv.lock                    ← 依存関係ロックファイル
+├── data/                     ← サンプルデータ等
+│   ├── N10M100.data          ← LAMMPSデータファイルのサンプル
+│   └── (その他のデータ)
+├── docs/                     ← ドキュメント関連
+│   ├── build/
+│   └── source/
+│       ├── _static/
+│       └── _templates/
+├── scripts/                  ← 解析・可視化スクリプト
+│   ├── __init__.py
+│   ├── analysis.py           ← パーシステント図計算とBetti数解析
+│   └── plot.py               ← 結果の可視化（プロット機能を統合）
+├── src/                      ← ソースコード
+│   └── homological_threading/
+│       ├── __init__.py
+│       ├── lammps_io.py      ← LAMMPSデータファイルの入出力
+│       ├── main.py           ← コア機能の実装
+│       └── fortran/          ← 高速計算のFortran実装
+│           ├── __init__.py
+│           ├── compute.f90   ← スレッディング、Betti数計算の高速部分
+│           └── Makefile
+└── tests/                    ← テストコード
+    └── test.py
 ```
 
-### 2.2 主要なコンポーネント
+※ READMEのディレクトリ構造は、最新のファイル構成に基づいて更新されています。
 
-#### 2.2.1 Python部分
+---
 
-- `homological_threading/main.py`: 
-  - `HomologicalThreading`クラス: プロジェクトの中心となるクラス
-  - `PD_i`クラス: 単一環状高分子のパーシステント図を計算
-  - `PD_i_cup_j`クラス: 2つの環状高分子のカップ積のパーシステント図を計算
-  - `Threading`クラス: スレッディングの検出と定量化
-
-- `homological_threading/lammps_io.py`: 
-  - `LammpsData`クラス: LAMMPSデータファイルの読み書き
-  - `polyWrap`メソッド: 周期境界条件での分子の適切な配置
-
-#### 2.2.2 Fortran部分
-
-- `homological_threading/fortran/compute.f90`: 
-  - `threading`サブルーチン: スレッディング計算の高速実装
-  - `betti_number`サブルーチン: betti数計算の高速実装
-
-#### 2.2.3 スクリプト
-
-- `main.py`: プログラム全体のインターフェースとして機能し、ユーザの入力に応じて解析やプロットの各サブモジュールを呼び出すエントリーポイント
-- `scripts/analysis.py`: パーシステント図の計算とbetti数の解析
-- `scripts/plot_pd.py`: パーシステント図の可視化
-- `scripts/plot_betti.py`: betti数のプロット
-
-## 3. インストール方法
+## 3. 動作環境と依存ライブラリ
 
 ### 3.1 必要条件
 
 #### 3.1.1 Python環境
-
 - Python 3.13以上
-- uv (Pythonプロジェクト管理ツール)
+- uv（Pythonプロジェクト管理ツール）
 
 uvのインストール:
 ```bash
@@ -111,15 +103,7 @@ pip install uv
 ```
 
 #### 3.1.2 Fortranコンパイラ
-
-Fortranコンパイラが必要です:
-- gfortran (GNU Fortran Compiler)
-- ifx (Intel Fortran Compiler)
-
-Ubuntuの場合:
-```bash
-sudo apt install gfortran
-```
+- gfortran（GNU Fortran Compiler）または ifx（Intel Fortran Compiler）
 
 macOSの場合:
 ```bash
@@ -127,229 +111,119 @@ brew install gcc
 ```
 
 #### 3.1.3 CGAL (Computational Geometry Algorithms Library)
-
-HomCloudライブラリの依存ライブラリとして必要です。
-
-**システム全体にインストールする場合:**
-
-Ubuntuの場合:
-```bash
-sudo apt install libcgal-dev
-```
+CGALはHomCloudライブラリの依存ライブラリとして必要です。
 
 macOSの場合:
 ```bash
 brew install cgal
 ```
 
-**ユーザーローカルにインストールする場合:**
+または、ユーザーローカルにインストールする場合は、BOOSTとCGALをソースから構築してください。
 
-管理者権限がない場合は、以下の手順でユーザーローカルにインストールできます。
+---
 
-1. BOOSTのインストール:
-   ```bash
-   wget https://archives.boost.io/release/1.79.0/source/boost_1_79_0.tar.bz2
-   tar xvf boost_1_79_0.tar.bz2
-   cd boost_1_79_0
-   ./bootstrap.sh 
-   ./b2 headers
-   ```
-   インストール後、環境変数を設定:
-   ```bash
-   export LD_LIBRARY_PATH=/path/to/boost_1_79_0:$LD_LIBRARY_PATH
-   ```
+## 4. インストール方法
 
-2. CGALのインストール:
-   ```bash
-   wget https://github.com/CGAL/cgal/releases/download/v5.6.2/CGAL-5.6.2.tar.xz
-   tar xvf CGAL-5.6.2.tar.xz
-   ```
-   インストール後、環境変数を設定:
-   ```bash
-   export LD_LIBRARY_PATH=/path/to/CGAL-5.6.2:$LD_LIBRARY_PATH
-   ```
+### 4.1 必要なライブラリの準備
+上記の依存ライブラリ（Python, Fortranコンパイラ, CGALなど）をインストールしてください。
 
-### 3.2 Python仮想環境のセットアップ
+### 4.2 Python仮想環境のセットアップ
 
-uvを使用して仮想環境を作成します:
+uvを使用して仮想環境を作成・同期します:
 
 ```bash
 uv sync
 ```
 
-HomCloudのビルドに失敗する場合は、CGALのインクルードパスを指定してみてください:
-
+※ CGALのインクルードパスが必要な場合は、以下のように指定します:
 ```bash
 CPLUS_INCLUDE_PATH=/path/to/CGAL-5.6.2/include:$CPLUS_INCLUDE_PATH uv sync
 ```
 
-### 3.3 ビルド
+### 4.3 プロジェクトのビルド
 
-以下のコマンドでプロジェクトをビルドします:
+Fortranコードのビルドやその他必要なビルド処理は以下のコマンドで実行します:
 
 ```bash
 ./build.sh
 ```
 
-Fortranコンパイラが見つからない場合は、`src/homological_threading/fortran/Makefile`の`FC`変数を適切なコンパイラに設定してください。
+※ Fortranコンパイラが見つからない場合は、`src/homological_threading/fortran/Makefile`内の`FC`変数を適切に設定してください。
 
-例:
-```makefile
-# gfortranを使用する場合
-FC = gfortran
+---
 
-# Intel Fortranコンパイラを使用する場合
-# FC = ifx
-```
+## 5. 使用方法
 
-## 4. 使用方法
-
-### 4.1 基本的な使用例
-
-#### 4.1.1 パーシステント図の計算
-
-LAMMPSデータファイルからパーシステント図を計算します:
+### 5.1 パーシステント図の計算と解析
+LAMMPSデータファイルから環状高分子のパーシステント図（PD）を計算し、スレッディングを解析します:
 
 ```bash
 uv run python main.py analysis pd -i data/N10M100.data -o output_directory
 ```
 
-このコマンドは以下の処理を行います:
-1. LAMMPSデータファイルから環状高分子の座標を読み込む
+このコマンドは以下の処理を実行します:
+1. LAMMPSデータファイルから環状高分子の座標を読み込み
 2. 単一環状高分子のパーシステント図（PD_i）を計算
-3. 環状高分子ペアのパーシステント図（PD_i_cup_j）を計算
-4. スレッディングの検出と定量化
-5. 結果をHDF5ファイルに保存
+3. 複数環状高分子間のスレッディング解析（PD_i_cup_jの計算等）
+4. 解析結果をHDF5形式で保存
 
-#### 4.1.2 betti数の計算
+### 5.2 Betti数の計算
 
-保存されたHDF5ファイルからbetti数を計算します:
-
-```bash
-uv run main analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
-```
-
-#### 4.1.3 結果の可視化
-
-パーシステント図の可視化:
+保存されたHDF5ファイルからBetti数を計算します:
 
 ```bash
-uv run main.py plot pd -i output_directory/analysis.h5
-uv run main.py plot pd -i output_directory/*.h5
+uv run python main.py analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
 ```
 
-betti数のプロット:
+### 5.3 結果の可視化
+
+解析結果の可視化は以下のコマンドで実行します:
 
 ```bash
-uv run main plot betti -i data/analysis.h5
-uv run main plot betti -i data/*.h5
+uv run python main.py plot -i output_directory/analysis.h5
 ```
 
-### 4.2 入力データ形式
+---
 
-本プロジェクトはLAMMPSデータファイル形式の入力を受け付けます。このファイルには、環状高分子の原子座標、結合情報、周期境界条件などが含まれています。
+## 6. テストの実行
 
-サンプルデータとして`data/N10M100.data`が提供されています。このファイルは10個のビーズからなる環状高分子が100個含まれるシステムを表しています。
-
-### 4.3 出力データの解釈
-
-#### 4.3.1 HDF5ファイル構造
-
-出力されるHDF5ファイルには以下の情報が含まれています:
-
-- `/pd_i/pd`: 単一環状高分子のパーシステント図
-    - shape: [num_chains, num_points, 2]
-        - num_chains: 環状高分子の数
-        - num_points: 点の数
-        - 2: birth, deathの2次元座標
-    - 例1: `pd_i/pd[0]`は1番目の環状高分子のパーシステント図
-    - 例2: `pd_i/pd[0, 0]`は1番目の環状高分子の1番目の点のパーシステント図
-    - 例3: `pd_i/pd[0, 0, 0]`は1番目の環状高分子の1番目の点のbirth, `pd_i/pd[0, 0, 1]`は1番目の環状高分子の1番目の点のdeath
-- `/pd_i_cup_j/pd`: 環状高分子ペアのパーシステント図
-    - shape: [num_chains, num_chains, num_points, 2]
-        - num_chains: 環状高分子の数
-        - num_points: 点の数
-        - 2: birth, deathの2次元座標
-    - 例1: `pd_i_cup_j/pd[0, 1]`は1番目の環状高分子と2番目の環状高分子のパーシステント図
-    - 例2: `pd_i_cup_j/pd[0, 1, 0]`は1番目の環状高分子と2番目の環状高分子の1番目の点のパーシステント図
-    - 例3: `pd_i_cup_j/pd[0, 1, 0, 0]`は1番目の環状高分子と2番目の環状高分子の1番目の点のbirth, `pd_i_cup_j/pd[0, 1, 0, 1]`は1番目の環状高分子と2番目の環状高分子の1番目の点のdeath
-- `/threading/flags`: スレッディングの有無を示すフラグ
-    - shape: [num_chains, num_chains]
-        - num_chains: 環状高分子の数
-            - True, False で構成されるboolean行列
-            - 順に， passive, active をあらわす
-    - 例: `threading/flags[0, 1]`は2番目の環状高分子が1番目の環状高分子をスレッディングしているかどうかを示す
-- `/threading/pd`: スレッディングに関連するパーシステント図
-    - shape: [num_chains, num_chains, num_points, 2]
-        - num_chains: 環状高分子の数
-        - num_points: 点の数
-        - 2: birth, deathの2次元座標
-    - 例1: `threading/pd[0, 1]`は1番目の環状高分子と2番目の環状高分子のスレッディングに関連するパーシステント図
-- `/Metadata`: 解析に関するメタデータ
-
-#### 4.3.2 パーシステント図の解釈
-
-パーシステント図は、位相的特徴の「誕生」と「消滅」のスケールを表します。横軸が誕生スケール、縦軸が消滅スケールです。対角線から離れた点ほど、半径パラメータの変化に対して「持続性の高い」特徴を表します。
-
-### 5.1 パーシステントホモロジーの基礎
-
-パーシステントホモロジーは、データの位相的特徴を異なるスケールで捉える手法です。点群に対して、点間の距離εを徐々に大きくしていき、その過程で形成される単体複体（シンプリシャル・コンプレックス）の位相的特徴を追跡します。
-
-- 0次元ホモロジー: 連結成分（点）
-- 1次元ホモロジー: 輪（穴）
-- 2次元ホモロジー: 空洞
-
-環状高分子の場合、1次元ホモロジーが特に重要です。
-
-### 5.2 スレッディングの検出方法
-
-本プロジェクトでは、以下の手順でスレッディングを検出します:
-
-1. 単一環状高分子iのパーシステント図（PD_i）を計算
-2. 環状高分子iとjのカップ積のパーシステント図（PD_i_cup_j）を計算
-3. PD_iとPD_i_cup_jの差分を計算
-4. 差分が存在する場合、高分子jが高分子iをスレッディングしていると判定
-
-この方法は、スレッディングによって生じる位相的変化を捉えることができます。
-
-## 6. トラブルシューティング
-
-### 6.1 インストール関連の問題
-
-#### 6.1.1 HomCloudのビルドに失敗する場合
-
-CGALのインクルードパスが正しく設定されていない場合、HomCloudのビルドに失敗することがあります。
-正しいパスが設定されているか確認してください。
-例えば，以下を試してください:
-
-```bash
-CPLUS_INCLUDE_PATH=/path/to/CGAL-5.6.2/include:$CPLUS_INCLUDE_PATH uv sync
-```
-
-#### 6.1.2 Fortranコンパイルに失敗する場合
-
-`src/homological_threading/fortran/Makefile`の`FC`変数が適切に設定されているか確認してください。
-
-### 6.2 実行時の問題
-
-#### 6.2.1 計算速度が遅い場合
-
-- OpenMPのスレッド数を増やす: `export OMP_NUM_THREADS=8`
-- Pythonのマルチプロセス処理を有効にする（`mp=True`オプションを使用）
-
-## 7. 開発者向け情報
-
-### 7.1 コードの拡張
-
-新しい機能を追加する場合は、以下のファイルを編集してください:
-
-- 新しい解析: `src/homological_threading/main.py`
-- 入出力形式の修正: `src/homological_threading/lammps_io.py`
-- 計算の高速化: `src/homological_threading/fortran/compute.f90`
-
-### 7.2 テスト
-
-テストを実行するには:
+テストコードは以下のコマンドで実行できます:
 
 ```bash
 python tests/test.py
+```
+
+---
+
+## 7. トラブルシューティング
+
+### 7.1 インストール関連の問題
+
+- **HomCloudのビルド失敗**: CGALのインクルードパスが正しいか確認してください。
+- **Fortranコンパイル失敗**: `src/homological_threading/fortran/Makefile`内の`FC`変数が正しいか確認。
+
+### 7.2 実行時の問題
+
+- **計算速度が遅い場合**:
+  - 環境変数 `OMP_NUM_THREADS` を設定してスレッド数を増やす（例：`export OMP_NUM_THREADS=8`）。
+  - Pythonのマルチプロセス処理の有効化を検討。
+
+---
+
+## 8. 開発者向け情報
+
+### 8.1 コードの拡張
+新機能を追加する場合は、以下のファイルを編集してください:
+- コア解析ロジック: `src/homological_threading/main.py`
+- 入出力処理: `src/homological_threading/lammps_io.py`
+- 高速計算部分: `src/homological_threading/fortran/compute.f90` および `Makefile`
+- テストコード: `tests/test.py`
+
+### 8.2 リポジトリ構成の変更
+ルートレベルのファイル（`main.py`, `build.sh`, `pyproject.toml` など）も必要に応じて更新してください。
+
+---
+
+## 9. ライセンス
+
+本プロジェクトはMITライセンスの下で提供されています。詳細は [LICENSE](LICENSE) を参照してください。
