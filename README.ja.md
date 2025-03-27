@@ -157,7 +157,7 @@ Fortranコードのビルドやその他必要なビルド処理は以下のコ�
 LAMMPSデータファイルから環状高分子のパーシステント図（PD）を計算し、スレッディングを解析します:
 
 ```bash
-uv run python main.py analysis pd -i data/N10M100.data -o output_directory
+uv run main.py analysis pd -i data/N10M100.data -o output_directory
 ```
 
 このコマンドは以下の処理を実行します:
@@ -171,7 +171,7 @@ uv run python main.py analysis pd -i data/N10M100.data -o output_directory
 保存されたHDF5ファイルからBetti数を計算します:
 
 ```bash
-uv run python main.py analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
+uv run main.py analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
 ```
 
 ### 5.3 結果の可視化
@@ -179,7 +179,7 @@ uv run python main.py analysis betti -i output_directory/*.h5 -f output_director
 解析結果の可視化は以下のコマンドで実行します:
 
 ```bash
-uv run python main.py plot -i output_directory/analysis.h5
+uv run main.py plot -i output_directory/analysis.h5
 ```
 
 ---
@@ -189,7 +189,7 @@ uv run python main.py plot -i output_directory/analysis.h5
 テストコードは以下のコマンドで実行できます:
 
 ```bash
-python tests/test.py
+uv run tests/test.py
 ```
 
 ---

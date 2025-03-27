@@ -154,7 +154,7 @@ If the Fortran compiler is not detected, adjust the `FC` variable in `src/homolo
 ### 5.1 Calculation and Analysis of Persistence Diagrams
 Compute the persistence diagrams (PD) of cyclic polymers from a LAMMPS data file and analyze threading:
 ```bash
-uv run python main.py analysis pd -i data/N10M100.data -o output_directory
+uv run main.py analysis pd -i data/N10M100.data -o output_directory
 ```
 This command:
 1. Reads cyclic polymer coordinates from the LAMMPS data file.
@@ -166,14 +166,14 @@ This command:
 
 Calculate Betti numbers from the saved HDF5 files:
 ```bash
-uv run python main.py analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
+uv run main.py analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
 ```
 
 ### 5.3 Visualization of Results
 
 Visualize the analysis results using:
 ```bash
-uv run python main.py plot -i output_directory/analysis.h5
+uv run main.py plot -i output_directory/analysis.h5
 ```
 
 ---
@@ -182,7 +182,7 @@ uv run python main.py plot -i output_directory/analysis.h5
 
 Run the test suite with:
 ```bash
-python tests/test.py
+uv run tests/test.py
 ```
 
 ---
