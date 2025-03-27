@@ -5,7 +5,7 @@
 
 # Homological Threading
 
-This project is designed to quantify the threading (entanglement) of cyclic polymers using persistent homology. By applying persistent homology, the program analyzes the geometric and topological features (e.g., holes, voids, connected components) in a multi-scale manner to capture the complex intertwinement between cyclic polymers.
+This project is designed to quantify the threading (entanglement) of ring polymers using persistent homology. By applying persistent homology, the program analyzes the geometric and topological features (e.g., holes, voids, connected components) in a multi-scale manner to capture the complex intertwinement between ring polymers.
 
 ---
 
@@ -40,7 +40,7 @@ This project is designed to quantify the threading (entanglement) of cyclic poly
 
 ## Features
 - **Persistent Homology Analysis**: Analyzes point cloud data through filtrations at multiple scales to quantify topological features such as connected components, holes, and voids.
-- **Threading Quantification**: Evaluates the entanglement between single and multiple cyclic polymers using persistence diagrams and Betti numbers.
+- **Threading Quantification**: Evaluates the entanglement between single and multiple ring polymers using persistence diagrams and Betti numbers.
 - **High-Performance Computation**: The computational core is implemented in Fortran, ensuring efficient processing even for large-scale datasets.
 
 ---
@@ -152,12 +152,12 @@ If the Fortran compiler is not detected, adjust the `FC` variable in `src/homolo
 ## 5. Usage
 
 ### 5.1 Calculation and Analysis of Persistence Diagrams
-Compute the persistence diagrams (PD) of cyclic polymers from a LAMMPS data file and analyze threading:
+Compute the persistence diagrams (PD) of ring polymers from a LAMMPS data file and analyze threading:
 ```bash
 uv run main.py analysis pd -i data/N10M100.data -o output_directory
 ```
 This command:
-1. Reads cyclic polymer coordinates from the LAMMPS data file.
+1. Reads ring polymer coordinates from the LAMMPS data file.
 2. Computes the persistence diagram (PD_i) for individual polymers.
 3. Analyzes threading (e.g., by computing PD_i_cup_j) between multiple polymers.
 4. Saves the analysis results in HDF5 format.
