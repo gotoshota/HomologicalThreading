@@ -211,7 +211,7 @@ FC = gfortran
 Calculate persistent diagrams from LAMMPS data files:
 
 ```bash
-python scripts/analysis.py pd -i data/N10M100.data -o output_directory
+uv run python main.py analysis pd -i data/N10M100.data -o output_directory
 ```
 
 This command performs the following:
@@ -226,7 +226,7 @@ This command performs the following:
 Calculate Betti numbers from saved HDF5 files:
 
 ```bash
-python main analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
+uv run main analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
 ```
 
 #### 4.1.3 Visualize Results
@@ -234,8 +234,8 @@ python main analysis betti -i output_directory/*.h5 -f output_directory/analysis
 Visualize persistent diagrams:
 
 ```bash
-uv run scripts/plot.py pd -i output_directory/analysis.h5
-uv run scripts/plot.py pd -i output_directory/*.h5
+uv run main.py plot pd -i output_directory/analysis.h5
+uv run main.py plot pd -i output_directory/*.h5
 ```
 
 Plot Betti numbers:

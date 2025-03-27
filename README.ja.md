@@ -211,7 +211,7 @@ FC = gfortran
 LAMMPSデータファイルからパーシステント図を計算します:
 
 ```bash
-python scripts/analysis.py pd -i data/N10M100.data -o output_directory
+uv run python main.py analysis pd -i data/N10M100.data -o output_directory
 ```
 
 このコマンドは以下の処理を行います:
@@ -226,7 +226,7 @@ python scripts/analysis.py pd -i data/N10M100.data -o output_directory
 保存されたHDF5ファイルからbetti数を計算します:
 
 ```bash
-python main analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
+uv run main analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
 ```
 
 #### 4.1.3 結果の可視化
@@ -234,8 +234,8 @@ python main analysis betti -i output_directory/*.h5 -f output_directory/analysis
 パーシステント図の可視化:
 
 ```bash
-uv run scripts/plot.py pd -i output_directory/analysis.h5
-uv run scripts/plot.py pd -i output_directory/*.h5
+uv run main.py plot pd -i output_directory/analysis.h5
+uv run main.py plot pd -i output_directory/*.h5
 ```
 
 betti数のプロット:
