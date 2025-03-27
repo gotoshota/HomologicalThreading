@@ -291,10 +291,6 @@ The output HDF5 file contains the following information:
 
 Persistent diagrams represent the "birth" and "death" scales of topological features. The horizontal axis represents the birth scale, and the vertical axis represents the death scale. Points farther from the diagonal represent features with high "persistence" against changes in the radius parameter.
 
-#### 4.4 Reading HDF5 Files with Command Line Tool
-
-Typically,
-
 ### 5.1 Basics of Persistent Homology
 
 Persistent homology is a method for capturing the topological features of data at different scales. For point clouds, the distance ε between points is gradually increased, and the topological features of the simplicial complex formed during this process are tracked.
