@@ -5,7 +5,7 @@
 
 # Homological Threading
 
-This project is designed to quantify the threading (entanglement) of ring polymers using persistent homology. By applying persistent homology, the program analyzes the geometric and topological features (e.g., holes, voids, connected components) in a multi-scale manner to capture the complex intertwinement between ring polymers.
+This project is designed to quantify the threading of ring polymers using persistent homology. By applying persistent homology, the program analyzes the geometric and topological features (e.g., holes, voids, connected components) in a multi-scale manner to capture the complex intertwinement between ring polymers.
 
 ---
 
