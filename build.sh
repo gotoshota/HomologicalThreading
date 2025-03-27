@@ -1,4 +1,5 @@
 #! /bin/bash
+set -e
 
 # check dependencies
 if ! [ -x "$(command -v uv)" ]; then
@@ -18,5 +19,3 @@ pushd $(dirname $0) > /dev/null
 popd
 
 echo "Build complete."
-
-
