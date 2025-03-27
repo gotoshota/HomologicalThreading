@@ -30,9 +30,6 @@ This project is designed to quantify the threading of ring polymers using persis
   - [7. Troubleshooting](#7-troubleshooting)
     - [7.1 Installation Issues](#71-installation-issues)
     - [7.2 Runtime Issues](#72-runtime-issues)
-  - [8. Developer Information](#8-developer-information)
-    - [8.1 Extending the Code](#81-extending-the-code)
-    - [8.2 Changes to Repository Structure](#82-changes-to-repository-structure)
 
 ---
 
@@ -191,16 +188,3 @@ uv run tests/test.py
   - Increase the number of threads by setting the `OMP_NUM_THREADS` environment variable (e.g., `export OMP_NUM_THREADS=8`).
   - Consider enabling Python multiprocessing.
 
----
-
-## 8. Developer Information
-
-### 8.1 Extending the Code
-To add new features, edit:
-- Core analysis logic: `src/homological_threading/main.py`
-- Input/output routines: `src/homological_threading/lammps_io.py`
-- High-performance routines: `src/homological_threading/fortran/compute.f90` and `Makefile`
-- Tests: `tests/test.py`
-
-### 8.2 Changes to Repository Structure
-Update root-level files (e.g., `main.py`, `build.sh`, `pyproject.toml`) as needed.
