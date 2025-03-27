@@ -1,9 +1,7 @@
-# Homological Threading Documentation
-
-- [Japanese Version](README.ja.md)
-- [English Version](README.md)
-
 # Homological Threading
+
+[Japanese](README.ja.md) / [English](README.md)
+
 
 This project is designed to quantify the threading of ring polymers using persistent homology. By applying persistent homology, the program analyzes the geometric and topological features (e.g., holes, voids, connected components) in a multi-scale manner to capture the complex intertwinement between ring polymers.
 
@@ -35,13 +33,6 @@ This project is designed to quantify the threading of ring polymers using persis
   - [8. Developer Information](#8-developer-information)
     - [8.1 Extending the Code](#81-extending-the-code)
     - [8.2 Changes to Repository Structure](#82-changes-to-repository-structure)
-
----
-
-## Features
-- **Persistent Homology Analysis**: Analyzes point cloud data through filtrations at multiple scales to quantify topological features such as connected components, holes, and voids.
-- **Threading Quantification**: Evaluates the entanglement between single and multiple ring polymers using persistence diagrams and Betti numbers.
-- **High-Performance Computation**: The computational core is implemented in Fortran, ensuring efficient processing even for large-scale datasets.
 
 ---
 
