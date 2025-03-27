@@ -1,138 +1,152 @@
-# HomologicalThreading
+# Homological Threading Documentation
 
-環状高分子のスレッディングをパーシステントホモロジーによって定量化するためのプログラム．
+- [日本語版](README.ja.md)
+- [English Version](README.md)
 
-## 1. プロジェクト概要
+# Homological Threading
 
-### 1.1 背景
+This project is a program to quantify the threading of **cyclic polymers** based on **persistent homology**.  
+By using persistent homology, it is possible to analyze the geometric and topological features (holes, cavities, connected components, etc.) of data at different scales, capturing the complex entanglement (threading) between cyclic polymers.
 
-環状高分子（リングポリマー）は、一般的な線状高分子と異なり、分子鎖の両端が結合して環状構造を形成しています。これらの環状高分子が互いに「スレッディング」する現象（一方の高分子が他方の高分子の輪を通り抜ける状態）は、物質の物理的性質に大きな影響を与えます。
+---
 
-しかし、このスレッディング現象は従来の方法では定量的に検出することが困難でした。本プロジェクトでは、トポロジカルデータ解析の一手法である「パーシステントホモロジー」を用いて、このスレッディング現象を数学的に検出・定量化する手法を実装しています。
+## Table of Contents
+- [Features](#features)
+- [Directory Structure](#directory-structure)
+- [Environment and Dependencies](#environment-and-dependencies)
+- [Installation](#installation)
+  - [1. Prepare Required Libraries](#1-prepare-required-libraries)
+  - [2. Set Up Python Virtual Environment](#2-set-up-python-virtual-environment)
+  - [3. Build the Project](#3-build-the-project)
+- [Usage](#usage)
+  - [Calculate and Analyze Persistent Diagrams](#calculate-and-analyze-persistent-diagrams)
+  - [Calculate Betti Numbers](#calculate-betti-numbers)
+  - [Visualize Results](#visualize-results)
+- [Run Tests](#run-tests)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
 
-### 1.2 パーシステントホモロジーとは
+---
 
-パーシステントホモロジーは、データの位相的特徴（穴や空洞など）を異なるスケールで捉える数学的手法です。点群データに対して、点間の距離を徐々に大きくしていき（フィルトレーション）、その過程で現れる・消える位相的特徴を追跡します。
+## Features
+- **Persistent Homology Analysis**: Tracks topological features (holes, connected components, cavities, etc.) of point cloud data through filtration, enabling quantitative analysis.
+- **Threading Quantification**: Evaluates the entanglement between single and multiple cyclic polymers through persistent diagrams (PD) and Betti number calculations.
+- **High-Speed Computation**: The computation core is implemented in Fortran, allowing efficient operations even on large-scale data.
 
-この手法により、環状高分子の形状とその相互作用を数学的に記述し、スレッディング現象を定量的に評価することが可能になります。
+---
 
-### 1.3 本プロジェクトの目的
-
-本プロジェクトの主な目的は以下の通りです：
-
-1. 環状高分子の構造をパーシステントホモロジーで解析する
-2. 環状高分子間のスレッディングを数学的に検出する
-3. スレッディングの度合いを定量化する
-
-## 2. プロジェクト構造
-
-### 2.1 ディレクトリ構造
+## Directory Structure
+Below is the main directory structure of the project:
 
 ```
 HomologicalThreading/
-├── data/                  # サンプルデータ
-│   ├── ht.h5              # 解析結果のサンプル
-│   └── N10M100.data       # LAMMPSデータファイルのサンプル
-├── scripts/               # 解析・可視化スクリプト
-│   ├── analysis.py        # パーシステント図計算とベッティ数解析
-│   ├── plot_betti.py      # ベッティ数のプロット
-│   └── plot_pd.py         # パーシステント図の可視化
-├── src/                   # ソースコード
+├── data/                  # Sample data
+│   ├── ht.h5              # Sample analysis result
+│   └── N10M100.data       # Sample LAMMPS data file
+├── scripts/               # Analysis and visualization scripts
+│   ├── analysis.py        # Persistent diagram calculation and Betti number analysis
+│   ├── plot_betti.py      # Betti number plotting
+│   └── plot_pd.py         # Persistent diagram visualization
+├── src/                   # Source code
 │   └── homological_threading/
 │       ├── __init__.py
-│       ├── lammps_io.py   # LAMMPSデータファイルの入出力
-│       ├── main.py        # メインの実装
-│       └── fortran/       # Fortranによる高速化実装
+│       ├── lammps_io.py   # LAMMPS data file I/O
+│       ├── main.py        # Main implementation
+│       └── fortran/       # Fortran-based high-speed implementation
 │           ├── __init__.py
-│           ├── compute.f90 # 計算コア部分
+│           ├── compute.f90 # Computation core
 │           └── Makefile
-├── tests/                 # テストコード
+├── tests/                 # Test code
 │   └── test.py
 ├── .gitignore
 ├── .python-version
-├── build.sh               # ビルドスクリプト
-├── pyproject.toml         # Pythonプロジェクト設定
-├── README.md              # このファイル
-└── uv.lock                # 依存関係ロックファイル
+├── build.sh               # Build script
+├── pyproject.toml         # Python project settings
+├── README.md              # This file
+├── main.py                # Interface
+└── uv.lock                # Dependency lock file
+
 ```
 
-### 2.2 主要なコンポーネント
+### 2.2 Main Components
 
-#### 2.2.1 Python部分
+#### 2.2.1 Python Part
 
 - `homological_threading/main.py`: 
-  - `HomologicalThreading`クラス: プロジェクトの中心となるクラス
-  - `PD_i`クラス: 単一環状高分子のパーシステント図を計算
-  - `PD_i_cup_j`クラス: 2つの環状高分子のカップ積のパーシステント図を計算
-  - `Threading`クラス: スレッディングの検出と定量化
+  - `HomologicalThreading` class: Central class of the project
+  - `PD_i` class: Calculates the persistent diagram of a single cyclic polymer
+  - `PD_i_cup_j` class: Calculates the persistent diagram of the cup product of two cyclic polymers
+  - `Threading` class: Detection and quantification of threading
 
 - `homological_threading/lammps_io.py`: 
-  - `LammpsData`クラス: LAMMPSデータファイルの読み書き
-  - `polyWrap`メソッド: 周期境界条件での分子の適切な配置
+  - `LammpsData` class: Reading and writing LAMMPS data files
+  - `polyWrap` method: Proper placement of molecules under periodic boundary conditions
 
-#### 2.2.2 Fortran部分
+#### 2.2.2 Fortran Part
 
 - `homological_threading/fortran/compute.f90`: 
-  - `threading`サブルーチン: スレッディング計算の高速実装
-  - `betti_number`サブルーチン: ベッティ数計算の高速実装
+  - `threading` subroutine: High-speed implementation of threading calculation
+  - `betti_number` subroutine: High-speed implementation of Betti number calculation
 
-#### 2.2.3 スクリプト
+#### 2.2.3 Scripts
 
-- `scripts/analysis.py`: パーシステント図の計算とベッティ数の解析
-- `scripts/plot_pd.py`: パーシステント図の可視化
-- `scripts/plot_betti.py`: ベッティ数のプロット
+- `main.py`: Functions as the interface for the entire program, calling each submodule for analysis and plotting based on user input
+- `scripts/analysis.py`: Calculation of persistent diagrams and Betti number analysis
+- `scripts/plot_pd.py`: Visualization of persistent diagrams
+- `scripts/plot_betti.py`: Plotting of Betti numbers
 
-## 3. インストール方法
+## 3. Installation
 
-### 3.1 必要条件
+### 3.1 Requirements
 
-#### 3.1.1 Python環境
+#### 3.1.1 Python Environment
 
-- Python 3.13以上
-- uv (Pythonプロジェクト管理ツール)
+- Python 3.13 or higher
+- uv (Python project management tool)
 
-uvのインストール:
+Install uv:
 ```bash
 pip install uv
 ```
 
-#### 3.1.2 Fortranコンパイラ
+#### 3.1.2 Fortran Compiler
 
-以下のいずれかのFortranコンパイラが必要です:
+A Fortran compiler is required:
 - gfortran (GNU Fortran Compiler)
 - ifx (Intel Fortran Compiler)
 
-Ubuntuの場合:
+On Ubuntu:
 ```bash
 sudo apt install gfortran
 ```
 
-macOSの場合:
+On macOS:
 ```bash
 brew install gcc
 ```
 
 #### 3.1.3 CGAL (Computational Geometry Algorithms Library)
 
-HomCloudライブラリの依存ライブラリとして必要です。
+Required as a dependency for the HomCloud library.
 
-**システム全体にインストールする場合:**
+**To install system-wide:**
 
-Ubuntuの場合:
+On Ubuntu:
 ```bash
 sudo apt install libcgal-dev
 ```
 
-macOSの場合:
+On macOS:
 ```bash
 brew install cgal
 ```
 
-**ユーザーローカルにインストールする場合:**
+**To install locally:**
 
-管理者権限がない場合は、以下の手順でユーザーローカルにインストールできます。
+If you do not have administrator privileges, you can install locally using the following steps.
 
-1. BOOSTのインストール:
+1. Install BOOST:
    ```bash
    wget https://archives.boost.io/release/1.79.0/source/boost_1_79_0.tar.bz2
    tar xvf boost_1_79_0.tar.bz2
@@ -140,199 +154,206 @@ brew install cgal
    ./bootstrap.sh 
    ./b2 headers
    ```
-   インストール後、環境変数を設定:
+   After installation, set the environment variable:
    ```bash
    export LD_LIBRARY_PATH=/path/to/boost_1_79_0:$LD_LIBRARY_PATH
    ```
 
-2. CGALのインストール:
+2. Install CGAL:
    ```bash
    wget https://github.com/CGAL/cgal/releases/download/v5.6.2/CGAL-5.6.2.tar.xz
    tar xvf CGAL-5.6.2.tar.xz
    ```
-   インストール後、環境変数を設定:
+   After installation, set the environment variable:
    ```bash
    export LD_LIBRARY_PATH=/path/to/CGAL-5.6.2:$LD_LIBRARY_PATH
    ```
 
-### 3.2 Python仮想環境のセットアップ
+### 3.2 Set Up Python Virtual Environment
 
-uvを使用して仮想環境を作成します:
+Create a virtual environment using uv:
 
 ```bash
 uv sync
 ```
 
-HomCloudのビルドに失敗する場合は、CGALのインクルードパスを指定してみてください:
+If building HomCloud fails, try specifying the CGAL include path:
 
 ```bash
 CPLUS_INCLUDE_PATH=/path/to/CGAL-5.6.2/include:$CPLUS_INCLUDE_PATH uv sync
 ```
 
-### 3.3 ビルド
+### 3.3 Build
 
-以下のコマンドでプロジェクトをビルドします:
+Build the project with the following command:
 
 ```bash
 ./build.sh
 ```
 
-Fortranコンパイラが見つからない場合は、`src/homological_threading/fortran/Makefile`の`FC`変数を適切なコンパイラに設定してください。
+If the Fortran compiler is not found, set the `FC` variable in `src/homological_threading/fortran/Makefile` to the appropriate compiler.
 
-例:
+Example:
 ```makefile
-# gfortranを使用する場合
+# Use gfortran
 FC = gfortran
 
-# Intel Fortranコンパイラを使用する場合
+# Use Intel Fortran Compiler
 # FC = ifx
 ```
 
-## 4. 使用方法
+## 4. Usage
 
-### 4.1 基本的な使用例
+### 4.1 Basic Usage Examples
 
-#### 4.1.1 パーシステント図の計算
+#### 4.1.1 Calculate Persistent Diagrams
 
-LAMMPSデータファイルからパーシステント図を計算します:
+Calculate persistent diagrams from LAMMPS data files:
 
 ```bash
 python scripts/analysis.py pd -i data/N10M100.data -o output_directory
 ```
 
-このコマンドは以下の処理を行います:
-1. LAMMPSデータファイルから環状高分子の座標を読み込む
-2. 単一環状高分子のパーシステント図（PD_i）を計算
-3. 環状高分子ペアのパーシステント図（PD_i_cup_j）を計算
-4. スレッディングの検出と定量化
-5. 結果をHDF5ファイルに保存
+This command performs the following:
+1. Reads coordinates of cyclic polymers from LAMMPS data files
+2. Calculates the persistent diagram (PD_i) of a single cyclic polymer
+3. Calculates the persistent diagram (PD_i_cup_j) of cyclic polymer pairs
+4. Detects and quantifies threading
+5. Saves results to an HDF5 file
 
-#### 4.1.2 ベッティ数の計算
+#### 4.1.2 Calculate Betti Numbers
 
-保存されたHDF5ファイルからベッティ数を計算します:
-
-```bash
-python scripts/analysis.py betti -i output_directory/*.h5 -o output_directory
-```
-
-#### 4.1.3 結果の可視化
-
-パーシステント図の可視化:
+Calculate Betti numbers from saved HDF5 files:
 
 ```bash
-python scripts/plot_pd.py output_directory/*.h5
+python main analysis betti -i output_directory/*.h5 -f output_directory/analysis.h5
 ```
 
-ベッティ数のプロット:
+#### 4.1.3 Visualize Results
+
+Visualize persistent diagrams:
 
 ```bash
-python scripts/plot_betti.py output_directory/betti.h5
+uv run scripts/plot.py pd -i output_directory/analysis.h5
+uv run scripts/plot.py pd -i output_directory/*.h5
 ```
 
-### 4.2 入力データ形式
+Plot Betti numbers:
 
-本プロジェクトはLAMMPSデータファイル形式の入力を受け付けます。このファイルには、環状高分子の原子座標、結合情報、周期境界条件などが含まれています。
+```bash
+uv run main plot betti -i data/analysis.h5
+uv run main plot betti -i data/*.h5
+```
 
-サンプルデータとして`data/N10M100.data`が提供されています。このファイルは10個のビーズからなる環状高分子が100個含まれるシステムを表しています。
+### 4.2 Input Data Format
 
-### 4.3 出力データの解釈
+This project accepts input in the form of LAMMPS data files. These files contain atomic coordinates, bonding information, and periodic boundary conditions for cyclic polymers.
 
-#### 4.3.1 HDF5ファイル構造
+Sample data `data/N10M100.data` is provided, representing a system with 100 cyclic polymers each consisting of 10 beads.
 
-出力されるHDF5ファイルには以下の情報が含まれています:
+### 4.3 Interpretation of Output Data
 
-- `/pd_i/pd`: 単一環状高分子のパーシステント図
-- `/pd_i_cup_j/pd`: 環状高分子ペアのパーシステント図
-- `/threading/flags`: スレッディングの有無を示すフラグ
-- `/threading/pd`: スレッディングに関連するパーシステント図
-- `/Metadata`: 解析に関するメタデータ
+#### 4.3.1 HDF5 File Structure
 
-#### 4.3.2 パーシステント図の解釈
+The output HDF5 file contains the following information:
 
-パーシステント図は、位相的特徴の「誕生」と「消滅」のスケールを表します。横軸が誕生スケール、縦軸が消滅スケールです。対角線から離れた点ほど、「持続性の高い」特徴を表します。
+- `/pd_i/pd`: Persistent diagram of a single cyclic polymer
+    - shape: [num_chains, num_points, 2]
+        - num_chains: Number of cyclic polymers
+        - num_points: Number of points
+        - 2: 2D coordinates of birth and death
+    - Example 1: `pd_i/pd[0]` is the persistent diagram of the first cyclic polymer
+    - Example 2: `pd_i/pd[0, 0]` is the persistent diagram of the first point of the first cyclic polymer
+    - Example 3: `pd_i/pd[0, 0, 0]` is the birth of the first point of the first cyclic polymer, `pd_i/pd[0, 0, 1]` is the death of the first point of the first cyclic polymer
+- `/pd_i_cup_j/pd`: Persistent diagram of cyclic polymer pairs
+    - shape: [num_chains, num_chains, num_points, 2]
+        - num_chains: Number of cyclic polymers
+        - num_points: Number of points
+        - 2: 2D coordinates of birth and death
+    - Example 1: `pd_i_cup_j/pd[0, 1]` is the persistent diagram of the first and second cyclic polymers
+    - Example 2: `pd_i_cup_j/pd[0, 1, 0]` is the persistent diagram of the first point of the first and second cyclic polymers
+    - Example 3: `pd_i_cup_j/pd[0, 1, 0, 0]` is the birth of the first point of the first and second cyclic polymers, `pd_i_cup_j/pd[0, 1, 0, 1]` is the death of the first point of the first and second cyclic polymers
+- `/threading/flags`: Flags indicating the presence of threading
+    - shape: [num_chains, num_chains]
+        - num_chains: Number of cyclic polymers
+            - Boolean matrix composed of True and False
+            - Represents passive and active, respectively
+    - Example: `threading/flags[0, 1]` indicates whether the second cyclic polymer is threading the first cyclic polymer
+- `/threading/pd`: Persistent diagram related to threading
+    - shape: [num_chains, num_chains, num_points, 2]
+        - num_chains: Number of cyclic polymers
+        - num_points: Number of points
+        - 2: 2D coordinates of birth and death
+    - Example 1: `threading/pd[0, 1]` is the persistent diagram related to threading of the first and second cyclic polymers
+- `/Metadata`: Metadata related to the analysis
 
-#### 4.3.3 スレッディングフラグの解釈
+#### 4.3.2 Interpretation of Persistent Diagrams
 
-`threading/flags`は、環状高分子ペア間のスレッディングの有無を示す行列です。`flags[i, j] = True`は、高分子jが高分子iをスレッディングしていることを示します。
+Persistent diagrams represent the "birth" and "death" scales of topological features. The horizontal axis represents the birth scale, and the vertical axis represents the death scale. Points farther from the diagonal represent features with high "persistence" against changes in the radius parameter.
 
-## 5. 理論的背景
+#### 4.4 Reading HDF5 Files with Command Line Tool
 
-### 5.1 パーシステントホモロジーの基礎
+Typically,
 
-パーシステントホモロジーは、データの位相的特徴を異なるスケールで捉える手法です。点群に対して、点間の距離εを徐々に大きくしていき、その過程で形成される単体複体（シンプリシャル・コンプレックス）の位相的特徴を追跡します。
+### 5.1 Basics of Persistent Homology
 
-- 0次元ホモロジー: 連結成分（点）
-- 1次元ホモロジー: 輪（穴）
-- 2次元ホモロジー: 空洞
+Persistent homology is a method for capturing the topological features of data at different scales. For point clouds, the distance ε between points is gradually increased, and the topological features of the simplicial complex formed during this process are tracked.
 
-環状高分子の場合、1次元ホモロジーが特に重要です。
+- 0-dimensional homology: Connected components (points)
+- 1-dimensional homology: Loops (holes)
+- 2-dimensional homology: Cavities
 
-### 5.2 スレッディングの検出方法
+For cyclic polymers, 1-dimensional homology is particularly important.
 
-本プロジェクトでは、以下の手順でスレッディングを検出します:
+### 5.2 Method for Detecting Threading
 
-1. 単一環状高分子iのパーシステント図（PD_i）を計算
-2. 環状高分子iとjのカップ積のパーシステント図（PD_i_cup_j）を計算
-3. PD_iとPD_i_cup_jの差分を計算
-4. 差分が存在する場合、高分子jが高分子iをスレッディングしていると判定
+In this project, threading is detected using the following steps:
 
-この方法は、スレッディングによって生じる位相的変化を捉えることができます。
+1. Calculate the persistent diagram (PD_i) of a single cyclic polymer i
+2. Calculate the persistent diagram (PD_i_cup_j) of the cup product of cyclic polymers i and j
+3. Calculate the difference between PD_i and PD_i_cup_j
+4. If a difference exists, it is determined that polymer j is threading polymer i
 
-## 6. トラブルシューティング
+This method captures the topological changes caused by threading.
 
-### 6.1 インストール関連の問題
+## 6. Troubleshooting
 
-#### 6.1.1 HomCloudのビルドに失敗する場合
+### 6.1 Installation Issues
 
-CGALのライブラリが見つからない可能性があります。以下を試してください:
+#### 6.1.1 If Building HomCloud Fails
+
+If the CGAL include path is not set correctly, building HomCloud may fail.
+Please check if the correct path is set.
+For example, try the following:
 
 ```bash
 CPLUS_INCLUDE_PATH=/path/to/CGAL-5.6.2/include:$CPLUS_INCLUDE_PATH uv sync
 ```
 
-#### 6.1.2 Fortranコンパイルに失敗する場合
+#### 6.1.2 If Fortran Compilation Fails
 
-`src/homological_threading/fortran/Makefile`の`FC`変数が適切に設定されているか確認してください。
+Please check if the `FC` variable in `src/homological_threading/fortran/Makefile` is set correctly.
 
-### 6.2 実行時の問題
+### 6.2 Runtime Issues
 
-#### 6.2.1 メモリ不足エラー
+#### 6.2.1 If Computation is Slow
 
-大規模なシステムを解析する場合、メモリ不足になる可能性があります。以下の対策を試してください:
+- Increase the number of OpenMP threads: `export OMP_NUM_THREADS=8`
+- Enable Python multiprocessing (`mp=True` option)
 
-- 小さなサブセットで解析を行う
-- マルチプロセス処理を無効にする（`mp=False`オプションを使用）
+## 7. Developer Information
 
-#### 6.2.2 計算速度が遅い場合
+### 7.1 Extending the Code
 
-- OpenMPのスレッド数を増やす: `export OMP_NUM_THREADS=8`
-- Pythonのマルチプロセス処理を有効にする（`mp=True`オプションを使用）
+To add new features, edit the following files:
 
-## 7. 開発者向け情報
+- New analysis: `src/homological_threading/main.py`
+- Modify input/output formats: `src/homological_threading/lammps_io.py`
+- Speed up computation: `src/homological_threading/fortran/compute.f90`
 
-### 7.1 コードの拡張
+### 7.2 Testing
 
-新しい機能を追加する場合は、以下のファイルを編集してください:
-
-- 新しい解析手法: `src/homological_threading/main.py`
-- 新しい入出力形式: `src/homological_threading/lammps_io.py`
-- 計算の高速化: `src/homological_threading/fortran/compute.f90`
-
-### 7.2 テスト
-
-テストを実行するには:
+To run tests:
 
 ```bash
 python tests/test.py
-```
-
-## 8. 参考文献
-
-1. パーシステントホモロジーの理論:
-   - Edelsbrunner, H., & Harer, J. (2010). Computational Topology: An Introduction. American Mathematical Society.
-
-2. 先行研究:
-   - F. Landuzzi, T. Nakamura, D. Michieletto, and T. Sakaue, Persistent homology of entangled rings, Physical Review Research 2, 033529 (2020).
-
-3. HomCloudライブラリ:
-   - Obayashi, I. (2018). HomCloud: A computing software for persistent homology. https://homcloud.dev/

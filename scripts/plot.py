@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+"""
+Plotting script for Persistent Diagrams, Betti Numbers, and Number of Threadings.
+
+Usage:
+    uv run -m scripts.plot pd -i input_file
+    uv run -m scripts.plot betti -i input_file
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
